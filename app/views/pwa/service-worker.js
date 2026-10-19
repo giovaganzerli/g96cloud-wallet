@@ -1,7 +1,7 @@
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v1-wallet-8ad5b8fbb493';
 const OFFLINE_ASSETS = [
   '/offline.html',
-  '/logo-offline.svg'
+  '/branding/wallet-8ad5b8fbb493-512.png'
 ];
 
 // Install event - cache the offline page and assets

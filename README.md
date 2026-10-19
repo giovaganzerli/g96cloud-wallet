@@ -17,7 +17,18 @@
   <a href="https://readme-i18n.com/zh/we-promise/sure">中文</a>
 </p>
 
-# Sure: The personal finance app for everyone
+# Wallet — personal Sure fork
+
+This fork uses a transparent piggy-bank icon for the web app, favicon and PWA.
+The app name is configured as `Wallet`, and browser tabs use
+`Giovanni Ganzerli | Wallet`. See [Wallet branding](docs/hosting/wallet-branding.md)
+for the asset locations and update procedure.
+
+Based on the community-maintained Sure fork of Maybe Finance; this personal fork
+is not affiliated with or endorsed by Maybe Finance Inc. Upstream license and
+attribution are retained.
+
+## Sure: The personal finance app for everyone
 
 <b>Get
 involved: [Discord](https://discord.gg/36ZGBsxYEK) • [Website](https://sure.am) • [Issues](https://github.com/we-promise/sure/issues)</b>

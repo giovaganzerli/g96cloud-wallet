@@ -1,5 +1,5 @@
 <head>
-  <title><%= content_for(:title) || product_name %></title>
+  <title>Giovanni Ganzerli | Wallet</title>
 
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
@@ -27,11 +27,14 @@
   <meta name="theme-color" content="#0B0B0B" media="(prefers-color-scheme: dark)">
 
   <link rel="manifest" href="<%= pwa_manifest_path %>">
+  <link rel="icon" type="image/x-icon" href="/branding/wallet-8ad5b8fbb493.ico">
+  <link rel="icon" sizes="16x16" type="image/png" href="/branding/wallet-8ad5b8fbb493-16.png">
+  <link rel="icon" sizes="32x32" type="image/png" href="/branding/wallet-8ad5b8fbb493-32.png">
   <%# Provide multiple iOS icons (standard 180x180 and larger) %>
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="apple-touch-icon" sizes="512x512" href="/logo-pwa.png">
-  <link rel="icon" sizes="192x192" type="image/png" href="/android-chrome-192x192.png">
+  <link rel="apple-touch-icon" href="/branding/wallet-8ad5b8fbb493-180.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/branding/wallet-8ad5b8fbb493-180.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="/branding/wallet-8ad5b8fbb493-512.png">
+  <link rel="icon" sizes="192x192" type="image/png" href="/branding/wallet-8ad5b8fbb493-192.png">
 
   <% if posthog_enabled? && (posthog_config = Rails.configuration.x.posthog).try(:api_key).present? %>
     <%= render "shared/posthog", posthog_api_key: posthog_config.api_key, posthog_host: posthog_config.host %>
