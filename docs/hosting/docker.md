@@ -2,6 +2,9 @@
 
 This guide will help you setup, update, and maintain your self-hosted Sure application with Docker Compose. Docker Compose is the most popular and recommended way to self-host the Sure app.
 
+For automatic updates of an existing NAS installation after pushes to `g96-custom`, see
+[GitHub Actions deployment over Tailscale](nas-github-actions.md).
+
 ## Setup Guide
 
 Follow the guide below to get your app running.
@@ -386,4 +389,3 @@ For day-to-day triage of stuck syncs, imports, and exports, prefer **Settings �
 
 - Never manually retry `SimplefinConnectionUpdateJob` — it consumes a single-use setup token, and a retry permanently breaks that connection attempt.
 - Deleting or retrying jobs does **not** update the corresponding Sure record (a deleted `ImportJob` leaves its import stuck in `importing`) — use Settings → Background jobs for record-level recovery.
-

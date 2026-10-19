@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Executed on the NAS over SSH by .github/workflows/deploy-nas.yml.
+set -euo pipefail
+umask 077
+
+deploy_path=${1:?Missing deployment directory}
+compose_file=${2:?Missing Compose filename}
+image=${3:?Missing image reference}
+[[ "$deploy_path" = /* ]] || { echo 'Deployment directory must be absolute.' >&2; exit 1; }
+[[ "$image" =~ ^ghcr\.io/[a-z0-9._/-]+:sha-[0-9a-f]{40}$ ]] || exit 1
+cd "$deploy_path"
+[[ -f "$compose_file" ]] || { echo 'Compose file does not exist.' >&2; exit 1; }
+docker compose version
+
+# Also protect against simultaneous deployments started outside GitHub Actions.
+mkdir .github-deploy.lock || { echo 'Another deployment is active; inspect .github-deploy.lock.' >&2; exit 1; }
+trap 'rmdir .github-deploy.lock' EXIT
+
+override=.compose.github-image.yml
+candidate=$(mktemp "$deploy_path/.compose.github-image.XXXXXX.yml")
+registry_config=
+cleanup() {
+  rm -f "$candidate"
+  if [[ -n "$registry_config" ]]; then
+    rm -f "$registry_config/config.json"
+    rmdir "$registry_config"
+  fi
+  rmdir .github-deploy.lock
+}
+trap cleanup EXIT
+if [[ -n "${GHCR_TOKEN:-}" ]]; then
+  registry_config=$(mktemp -d)
+  export DOCKER_CONFIG="$registry_config"
+  printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "${GHCR_USERNAME:?Missing registry username}" --password-stdin
+  unset GHCR_TOKEN
+fi
+printf 'services:\n  web:\n    image: %s\n  worker:\n    image: %s\n' "$image" "$image" > "$candidate"
+compose=(docker compose -f "$compose_file" -f "$candidate")
+"${compose[@]}" config --quiet < /dev/null
+"${compose[@]}" pull web worker < /dev/null
+
+# Keep database dumps local to the NAS; never upload financial data to Actions.
+mkdir -p backups/github-deploy
+stamp=$(date -u +%Y%m%dT%H%M%SZ)
+backup="backups/github-deploy/${stamp}-${image##*:}.dump"
+docker compose -f "$compose_file" exec -T db sh -ec \
+  'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' < /dev/null > "$backup.partial"
+test -s "$backup.partial"
+mv "$backup.partial" "$backup"
+if [[ -f "$override" ]]; then
+  cp "$override" "backups/github-deploy/${stamp}-previous-image.yml"
+fi
+
+"${compose[@]}" stop worker < /dev/null
+# The image entrypoint runs db:prepare. Never use down or delete volumes here.
+"${compose[@]}" up -d --no-deps web < /dev/null
+healthy=false
+for attempt in {1..60}; do
+  if "${compose[@]}" exec -T web curl --fail --silent --max-time 5 http://localhost:3000/up < /dev/null > /dev/null; then
+    healthy=true
+    break
+  fi
+  echo "Waiting for web health check (${attempt}/60)."
+  sleep 5
+done
+if [[ "$healthy" != true ]]; then
+  echo "Web health check failed. Worker remains stopped. Database backup: $backup" >&2
+  echo "Candidate image configuration: $candidate (printed below before cleanup)" >&2
+  cat "$candidate"
+  exit 1
+fi
+"${compose[@]}" up -d --no-deps worker < /dev/null
+# Persist the image selection for subsequent manual Compose operations.
+mv "$candidate" "$override"
+echo "Deployed $image; database backup: $backup"

@@ -55,6 +55,15 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     })
   end
 
+  test "sign in page preserves the Wallet branding as its default title" do
+    ensure_tailwind_build
+
+    get new_session_url
+
+    assert_response :success
+    assert_select "title", text: "Giovanni Ganzerli | Wallet"
+  end
+
   test "codespaces accepts its localhost preview origin with a valid CSRF token" do
     with_codespaces_origin_check do
       get new_session_url

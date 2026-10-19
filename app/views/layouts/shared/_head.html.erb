@@ -1,5 +1,5 @@
 <head>
-  <title>Giovanni Ganzerli | Wallet</title>
+  <title><%= content_for(:title).presence || t("branding.default_page_title") %></title>
 
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>

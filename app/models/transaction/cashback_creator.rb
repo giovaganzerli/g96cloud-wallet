@@ -66,20 +66,20 @@ class Transaction::CashbackCreator
 
   private
 
-  def find_or_initialize_cashback_category
-    family.categories.find_by("LOWER(name) = ?", "cashback") ||
-      family.categories.create!(
-        name: "Cashback",
-        color: "#22c55e",
-        lucide_icon: "receipt"
-      )
-  end
-
-  def entry_name
-    if parent_entry.name.present?
-      I18n.t("transactions.cashback_entry_name", default: "Cashback - %{name}", name: parent_entry.name)
-    else
-      "Cashback"
+    def find_or_initialize_cashback_category
+      family.categories.find_by("LOWER(name) = ?", "cashback") ||
+        family.categories.create!(
+          name: "Cashback",
+          color: "#22c55e",
+          lucide_icon: "receipt"
+        )
     end
-  end
+
+    def entry_name
+      if parent_entry.name.present?
+        I18n.t("transactions.cashback_entry_name", default: "Cashback - %{name}", name: parent_entry.name)
+      else
+        "Cashback"
+      end
+    end
 end

@@ -127,7 +127,8 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
           entryable_type: "Transaction",
           cashback_enabled: "1",
           cashback_value: "10.00",
-          cashback_type: "fixed"
+          cashback_type: "fixed",
+          entryable_attributes: { category_id: categories(:food_and_drink).id }
         }
       }
     end
@@ -161,7 +162,8 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
           entryable_type: "Transaction",
           cashback_enabled: "1",
           cashback_value: "5",
-          cashback_type: "percentage"
+          cashback_type: "percentage",
+          entryable_attributes: { category_id: categories(:food_and_drink).id }
         }
       }
     end
@@ -187,7 +189,8 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
           entryable_type: "Transaction",
           cashback_enabled: "1",
           cashback_value: "0",
-          cashback_type: "fixed"
+          cashback_type: "fixed",
+          entryable_attributes: { category_id: categories(:food_and_drink).id }
         }
       }
     end

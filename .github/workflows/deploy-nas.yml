@@ -1,0 +1,90 @@
+name: Deploy NAS over Tailscale
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: nas-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: nas
+    steps:
+      - name: Check out deployment script
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate configuration
+        env:
+          NAS_HOST: ${{ vars.NAS_HOST }}
+          NAS_USER: ${{ vars.NAS_USER }}
+          NAS_PATH: ${{ vars.NAS_PATH }}
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          NAS_KNOWN_HOSTS: ${{ secrets.NAS_KNOWN_HOSTS }}
+          TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          TS_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in NAS_HOST NAS_USER NAS_PATH NAS_SSH_KEY NAS_KNOWN_HOSTS TS_OAUTH_CLIENT_ID TS_OAUTH_SECRET; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing configuration: $name" >&2
+              exit 1
+            fi
+          done
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:github-deploy
+          ping: ${{ vars.NAS_HOST }}
+
+      - name: Deploy published commit
+        env:
+          NAS_HOST: ${{ vars.NAS_HOST }}
+          NAS_USER: ${{ vars.NAS_USER }}
+          NAS_PORT: ${{ vars.NAS_PORT || '22' }}
+          NAS_PATH: ${{ vars.NAS_PATH }}
+          NAS_COMPOSE_FILE: ${{ vars.NAS_COMPOSE_FILE || 'compose.yml' }}
+          NAS_USE_SUDO: ${{ vars.NAS_USE_SUDO || 'false' }}
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          NAS_KNOWN_HOSTS: ${{ secrets.NAS_KNOWN_HOSTS }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$NAS_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$NAS_USER" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$ ]]
+          [[ "$NAS_PORT" =~ ^[0-9]+$ ]]
+          ssh_dir=$(mktemp -d)
+          trap 'rm -rf "$ssh_dir"' EXIT
+          chmod 700 "$ssh_dir"
+          printf '%s\n' "$NAS_SSH_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$NAS_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          chmod 600 "$ssh_dir/key" "$ssh_dir/known_hosts"
+          image="ghcr.io/${GITHUB_REPOSITORY,,}:sha-${GITHUB_SHA}"
+          printf -v remote_command 'bash -s -- %q %q %q' "$NAS_PATH" "$NAS_COMPOSE_FILE" "$image"
+          case "$NAS_USE_SUDO" in
+            true) remote_command="sudo -n $remote_command" ;;
+            false) ;;
+            *) echo 'NAS_USE_SUDO must be true or false.' >&2; exit 1 ;;
+          esac
+          # Send the short-lived registry credential over encrypted stdin, not argv.
+          {
+            printf 'export GHCR_USERNAME=%q GHCR_TOKEN=%q\n' "$GHCR_USERNAME" "$GHCR_TOKEN"
+            cat bin/deploy-nas
+          } | ssh -T -p "$NAS_PORT" -i "$ssh_dir/key" \
+            -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=20 \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$ssh_dir/known_hosts" \
+            "$NAS_USER@$NAS_HOST" "$remote_command"
