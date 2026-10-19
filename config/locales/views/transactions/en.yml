@@ -20,6 +20,8 @@ en:
         tags_label: Tags
         transactions_section: Transactions
     unknown_name: Unknown transaction
+    cashback_amount_invalid: "Cashback amount must be greater than zero"
+    cashback_entry_name: "Cashback - %{name}"
     selection_bar:
       duplicate: Duplicate
       edit: Edit
@@ -29,6 +31,12 @@ en:
       account: Account
       account_prompt: Select an Account
       amount: Amount
+      cashback_label: "Cashback?"
+      cashback_value_label: "Cashback value"
+      cashback_placeholder: "0.00"
+      cashback_type_label: "Cashback type"
+      cashback_fixed: "Fixed amount (Nn)"
+      cashback_percentage: "Percentage (%)"
       category: Category
       category_label: Category
       category_prompt: Select a Category

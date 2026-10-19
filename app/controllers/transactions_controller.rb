@@ -157,12 +157,48 @@ class TransactionsController < ApplicationController
 
     @entry = account.entries.new(entry_params_with_idempotency_key(idempotency_key))
 
-    if @entry.save
-      @entry.sync_account_later
-      @entry.lock_saved_attributes!
-      @entry.mark_user_modified!
-      @entry.transaction.lock_attr!(:tag_ids) if @entry.transaction.tags.any?
+    cashback_creator = Transaction::CashbackCreator.new(
+      parent_entry: @entry,
+      account: account,
+      family: Current.family,
+      enabled: params.dig(:entry, :cashback_enabled),
+      value: params.dig(:entry, :cashback_value),
+      type: params.dig(:entry, :cashback_type),
+      idempotency_key: idempotency_key
+    )
 
+    if cashback_creator.enabled? && !cashback_creator.valid?
+      @entry.errors.add(:base, cashback_creator.error_message)
+      set_new_transaction_form_options
+      render :new, status: :unprocessable_entity
+      return
+    end
+
+    success = false
+    Entry.transaction do
+      if @entry.save
+        @entry.sync_account_later
+        @entry.lock_saved_attributes!
+        @entry.mark_user_modified!
+        @entry.transaction.lock_attr!(:tag_ids) if @entry.transaction.tags.any?
+
+        if cashback_creator.enabled?
+          cashback_entry = cashback_creator.create
+          if cashback_entry.nil? || cashback_entry.errors.any?
+            cashback_entry&.errors&.full_messages&.each do |msg|
+              @entry.errors.add(:base, msg)
+            end
+            raise ActiveRecord::Rollback
+          end
+        end
+
+        success = true
+      else
+        raise ActiveRecord::Rollback
+      end
+    end
+
+    if success
       respond_with_created_entry(@entry)
     else
       set_new_transaction_form_options

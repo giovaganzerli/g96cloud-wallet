@@ -20,6 +20,8 @@ it:
         tags_label: Etichette
         transactions_section: Transazioni
     unknown_name: Transazione sconosciuta
+    cashback_amount_invalid: "L'importo del cashback deve essere maggiore di zero"
+    cashback_entry_name: "Cashback - %{name}"
     selection_bar:
       duplicate: Duplica
       edit: Modifica
@@ -29,6 +31,12 @@ it:
       account: Conto
       account_prompt: Seleziona un conto
       amount: Importo
+      cashback_label: "Cashback?"
+      cashback_value_label: "Valore Cashback"
+      cashback_placeholder: "0.00"
+      cashback_type_label: "Tipo cashback"
+      cashback_fixed: "Importo fisso (Nn)"
+      cashback_percentage: "Percentuale (%)"
       category: Categoria
       category_label: Categoria
       category_prompt: Seleziona una categoria

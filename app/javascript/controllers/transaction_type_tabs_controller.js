@@ -22,5 +22,7 @@ export default class extends Controller {
         tab.removeAttribute("aria-current");
       }
     });
+
+    this.dispatch("change", { detail: { nature: selectedTab.dataset.nature } });
   }
 }

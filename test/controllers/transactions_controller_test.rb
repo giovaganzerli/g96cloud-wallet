@@ -114,6 +114,87 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_enqueued_with(job: SyncJob)
   end
 
+  test "creates expense transaction with fixed cashback" do
+    assert_difference [ "Entry.count", "Transaction.count" ], 2 do
+      post transactions_url, params: {
+        entry: {
+          account_id: @entry.account_id,
+          name: "Electronics Store",
+          date: Date.current,
+          currency: "USD",
+          amount: 200,
+          nature: "outflow",
+          entryable_type: "Transaction",
+          cashback_enabled: "1",
+          cashback_value: "10.00",
+          cashback_type: "fixed"
+        }
+      }
+    end
+
+    assert_response :redirect
+
+    entries = Entry.order(created_at: :desc).limit(2)
+    cashback_entry = entries.find { |e| e.name.start_with?("Cashback") }
+    expense_entry = entries.find { |e| e.name == "Electronics Store" }
+
+    assert_not_nil expense_entry
+    assert_not_nil cashback_entry
+
+    assert_equal 200.0, expense_entry.amount
+    assert_equal(-10.0, cashback_entry.amount)
+    assert_equal expense_entry.account_id, cashback_entry.account_id
+    assert_equal expense_entry.currency, cashback_entry.currency
+    assert_equal "Cashback", cashback_entry.transaction.category.name
+  end
+
+  test "creates expense transaction with percentage cashback" do
+    assert_difference [ "Entry.count", "Transaction.count" ], 2 do
+      post transactions_url, params: {
+        entry: {
+          account_id: @entry.account_id,
+          name: "Department Store",
+          date: Date.current,
+          currency: "USD",
+          amount: 200,
+          nature: "outflow",
+          entryable_type: "Transaction",
+          cashback_enabled: "1",
+          cashback_value: "5",
+          cashback_type: "percentage"
+        }
+      }
+    end
+
+    assert_response :redirect
+
+    entries = Entry.order(created_at: :desc).limit(2)
+    cashback_entry = entries.find { |e| e.name.start_with?("Cashback") }
+    assert_not_nil cashback_entry
+    assert_equal(-10.0, cashback_entry.amount) # 5% of 200 = 10.00
+  end
+
+  test "returns unprocessable entity when cashback is enabled with zero value" do
+    assert_no_difference [ "Entry.count", "Transaction.count" ] do
+      post transactions_url, params: {
+        entry: {
+          account_id: @entry.account_id,
+          name: "Shopping",
+          date: Date.current,
+          currency: "USD",
+          amount: 100,
+          nature: "outflow",
+          entryable_type: "Transaction",
+          cashback_enabled: "1",
+          cashback_value: "0",
+          cashback_type: "fixed"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+  end
+
   test "resubmitting the same idempotency key does not create a duplicate transaction" do
     idempotency_key = SecureRandom.uuid
     params = {
