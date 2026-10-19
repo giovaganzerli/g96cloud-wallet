@@ -3,7 +3,10 @@
 The existing `Publish Docker image` workflow runs CI, builds amd64/arm64 images
 and publishes them to GHCR. After a successful push build on **g96-custom**, it can now
 call `deploy-nas.yml` to update an existing Docker Compose installation over SSH
-inside Tailscale. Tags, scheduled builds and manual image builds do not deploy.
+inside Tailscale. Tags, scheduled builds and ordinary manual image builds do not deploy.
+To explicitly retry a deployment, run `Publish Docker image` manually with branch
+`g96-custom`, `ref=g96-custom`, `push=true` and `deploy=true`. Mismatched build refs
+cannot trigger a manual NAS deployment.
 No public SSH port or inbound port forwarding is needed.
 
 ## NAS prerequisites

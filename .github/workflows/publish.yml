@@ -24,6 +24,11 @@ on:
         required: false
         type: boolean
         default: false
+      deploy:
+        description: 'Deploy to NAS (g96-custom only; ref must match selected branch)'
+        required: false
+        type: boolean
+        default: false
   push:
     tags:
       - 'v*'
@@ -255,7 +260,10 @@ jobs:
   deploy_nas:
     name: Deploy to NAS
     needs: [merge]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/g96-custom' && vars.NAS_DEPLOY_ENABLED == 'true'
+    if: >-
+      github.ref == 'refs/heads/g96-custom' && vars.NAS_DEPLOY_ENABLED == 'true' &&
+      (github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.deploy && inputs.push && inputs.ref == github.ref_name))
     uses: ./.github/workflows/deploy-nas.yml
     secrets: inherit
 
