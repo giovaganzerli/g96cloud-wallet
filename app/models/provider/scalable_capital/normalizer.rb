@@ -26,7 +26,9 @@ class Provider::ScalableCapital::Normalizer
 
       {
         isin: isin!(row.fetch("isin")), name: row["name"], quantity: quantity,
-        amount: amount, price: quantity.zero? ? 0.to_d : amount / quantity,
+        # The broker's valuation is authoritative; the price is derived from it
+        # and rounded to the precision the holdings column stores.
+        amount: amount, price: quantity.zero? ? 0.to_d : (amount / quantity).round(4),
         currency: CURRENCY, date: date!,
         cost_basis: row["fifo_price"].present? && row["quote_currency"] == CURRENCY ? decimal(row["fifo_price"]) : nil
       }

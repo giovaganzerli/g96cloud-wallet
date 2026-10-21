@@ -111,6 +111,16 @@ class Provider::ScalableCapital::NormalizerTest < Minitest::Test
     assert_equal Date.new(2026, 10, 21), position[:date]
   end
 
+  def test_derived_price_is_rounded_to_the_stored_precision
+    @snapshot["holdings"] = [ {
+      "isin" => "IE00B4L5Y983", "name" => "World ETF", "quantity" => "3",
+      "valuation" => "10", "valuation_currency" => "EUR", "quote_currency" => "EUR"
+    } ]
+    position = @normalizer.holdings.first
+
+    assert_equal BigDecimal("3.3333"), position[:price]
+  end
+
   def test_foreign_cash_and_missing_trade_identifiers_fail_closed
     row = cash("DEPOSIT", "100")
     row["currency"] = "USD"

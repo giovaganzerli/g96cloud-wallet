@@ -190,7 +190,14 @@ class Provider::ScalableCapital
       end
       data = envelope.fetch("data")
       raise InvalidDataError, "Scalable Capital returned an invalid response" unless data.is_a?(Hash)
-      data
+
+      # The CLI wraps every projection in `data.result` and keeps the
+      # resolved account/portfolio plus the resolution metadata next to it.
+      # Read the result object; fall back to the flat payload for commands
+      # that answer without one.
+      result = data["result"]
+      result = data unless result.is_a?(Hash)
+      result
     rescue JSON::ParserError, KeyError, TypeError
       raise InvalidDataError, "Scalable Capital returned invalid JSON data"
     end

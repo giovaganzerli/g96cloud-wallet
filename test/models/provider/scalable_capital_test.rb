@@ -74,6 +74,35 @@ class Provider::ScalableCapitalTest < Minitest::Test
     assert_raises(Provider::ScalableCapital::InvalidDataError) { @provider.snapshot }
   end
 
+  # The regression behind "returned an incomplete holdings list": the CLI
+  # wraps the projection, and reading the wrapper instead of the result made
+  # every field look missing.
+  def test_wrapped_results_are_read_from_the_result_object
+    expect_command([ "broker", "overview" ], identity)
+    expect_command([ "broker", "holdings", "--portfolio-id", "portfolio-1" ], { "count" => 1, "items" => [ { "isin" => "IE00BJ0KDQ92" } ] })
+    expect_command([ "broker", "cash-breakdown", "--portfolio-id", "portfolio-1" ], { "cash_balance" => "2" })
+    expect_command([ "broker", "transactions", "--portfolio-id", "portfolio-1", "--page-size", "100" ], { "items" => [], "cursor" => nil, "total" => 0 })
+
+    snapshot = @provider.snapshot
+
+    assert_equal 1, snapshot["holdings"].size
+    assert_equal "IE00BJ0KDQ92", snapshot["holdings"].first["isin"]
+    # The provider keeps the raw CLI values; the normalizer converts them.
+    assert_equal "2", snapshot["cash"]["cash_balance"]
+  end
+
+  def test_a_flat_payload_is_still_accepted
+    flat = { "ok" => true, "data" => identity.merge("count" => 0, "items" => [], "cash_balance" => "2", "portfolio_id" => "portfolio-1") }
+    @provider.expects(:capture).with("broker", "overview", "--json").returns([ flat.to_json, @success ])
+    @provider.expects(:capture).with("broker", "holdings", "--portfolio-id", "portfolio-1", "--json").returns([ flat.to_json, @success ])
+    @provider.expects(:capture).with("broker", "cash-breakdown", "--portfolio-id", "portfolio-1", "--json").returns([ flat.to_json, @success ])
+    @provider.expects(:capture).with("broker", "transactions", "--portfolio-id", "portfolio-1", "--page-size", "100", "--json").returns([ flat.to_json, @success ])
+
+    snapshot = @provider.snapshot
+
+    assert_equal [], snapshot["holdings"]
+  end
+
   def test_login_uses_file_storage_and_the_local_read_only_guard
     environment = {
       "HOME" => @directory,
@@ -103,8 +132,18 @@ class Provider::ScalableCapitalTest < Minitest::Test
       { "account_id" => "account-1", "portfolio_id" => "portfolio-1" }
     end
 
-    def expect_command(args, data)
-      @provider.expects(:capture).with(*args, "--json").returns([ { "ok" => true, "data" => data }.to_json, @success ])
+    # The CLI answers with the projection wrapped in `data.result`, next to the
+    # resolved identifiers and the resolution metadata. Reproducing that exact
+    # envelope is what caught the first integration: a flat payload made the
+    # tests pass while the real command failed.
+    def expect_command(args, result)
+      envelope = {
+        "ok" => true,
+        "command" => args.join("."),
+        "data" => identity.merge("resolution" => { "account" => "selected_context", "portfolio" => "explicit" })
+                              .merge("result" => result.merge(identity))
+      }
+      @provider.expects(:capture).with(*args, "--json").returns([ envelope.to_json, @success ])
     end
 
     def stub_empty_snapshot_reads
