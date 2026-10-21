@@ -124,6 +124,13 @@ module SettingsHelper
     when "indexa_capital"
       return { status: :off } unless @indexa_capital_items&.any?
       sync_based_summary(key)
+    when "scalable_capital"
+      return { status: :off } unless @scalable_capital_items&.any?
+      if @scalable_capital_items.any?(&:requires_update?)
+        { status: :warn, meta: t("scalable_capital_items.requires_update") }
+      else
+        sync_based_summary(key)
+      end
     when "sophtron"
       return { status: :off } unless @sophtron_items&.any?
       sync_based_summary(key)

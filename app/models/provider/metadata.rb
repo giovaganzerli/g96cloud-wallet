@@ -20,6 +20,7 @@ class Provider
       snaptrade:      { region: "US / CA", kinds: %w[Investment],      maturity: :beta,   logo_text: "ST", logo_color: "#16a34a", domain: "snaptrade.com" },
       ibkr:           { region: "Global",  kinds: %w[Investment],      maturity: :beta,   logo_text: "IB", logo_color: "#dc2626", domain: "interactivebrokers.com" },
       indexa_capital: { region: "ES",      kinds: %w[Investment],      maturity: :alpha,  logo_text: "IC", logo_color: "#dc2626", domain: "indexacapital.com" },
+      scalable_capital: { region: "EU", kinds: %w[Investment], maturity: :alpha, logo_text: "SC", logo_color: nil, domain: "scalable.capital", name: "Scalable Capital" },
       sophtron:       { region: "US",      kinds: %w[Bank Investment], maturity: :alpha,  logo_text: "SO", logo_color: "#0d9488", domain: "sophtron.com" },
       trading212:     { region: "EU",      kinds: %w[Investment],      maturity: :alpha,  logo_text: "T2", logo_color: "#0d9488", domain: "trading212.com" },
       trade_republic: { region: "EU",      kinds: %w[Bank Investment], maturity: :beta,   logo_text: "TR", logo_color: nil,       domain: "traderepublic.com" },

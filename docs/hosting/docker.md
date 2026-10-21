@@ -5,6 +5,9 @@ This guide will help you setup, update, and maintain your self-hosted Sure appli
 For automatic updates of an existing NAS installation after pushes to `g96-custom`, see
 [GitHub Actions deployment over Tailscale](nas-github-actions.md).
 
+For investment imports from Scalable Capital, see the
+[Scalable Capital Docker/NAS integration guide](scalable-capital.md).
+
 ## Setup Guide
 
 Follow the guide below to get your app running.

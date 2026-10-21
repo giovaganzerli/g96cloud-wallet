@@ -1,0 +1,12 @@
+<% content_for :page_title, t("scalable_capital_items.title") %>
+<div class="space-y-4">
+  <%= render DS::Link.new(text: t("scalable_capital_items.back"), href: accounts_path, icon: "arrow-left") %>
+  <%= render DS::Alert.new(message: t("scalable_capital_items.setup_description")) %>
+  <ol class="list-decimal list-inside space-y-2 text-sm text-primary">
+    <li><%= t("scalable_capital_items.enable_cli") %></li>
+    <li><%= t("scalable_capital_items.login_on_server") %></li>
+  </ol>
+  <pre class="overflow-x-auto rounded-lg bg-container-inset p-4 text-sm text-primary"><code><%= @scalable_capital_item.login_command %></code></pre>
+  <%= render DS::Alert.new(message: t("scalable_capital_items.security_notice"), variant: :warning) %>
+  <%= render "scalable_capital_items/scalable_capital_item", scalable_capital_item: @scalable_capital_item %>
+</div>

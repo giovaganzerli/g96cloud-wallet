@@ -361,6 +361,7 @@ it:
         snaptrade: Connetti conti di intermediazione tramite la rete di aggregazione SnapTrade.
         ibkr: Sincronizza conti di investimento Interactive Brokers tramite importazioni Flex Query.
         indexa_capital: Monitora il tuo portafoglio di investimento automatizzato Indexa Capital.
+        scalable_capital: Importa il tuo portafoglio Scalable Capital con la CLI ufficiale Scalable.
         sophtron: Connetti banche e utility USA e canadesi.
         plaid: Connetti migliaia di istituti finanziari USA tramite Plaid.
         plaid_eu: Connetti istituti finanziari europei tramite Plaid (PSD2 / Open Banking).

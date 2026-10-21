@@ -1,0 +1,17 @@
+<%= turbo_frame_tag "modal" do %>
+  <%= render DS::Dialog.new do |dialog| %>
+    <% dialog.with_header(title: t("scalable_capital_items.title")) %>
+    <% dialog.with_body do %>
+      <div class="space-y-4">
+        <%= render DS::Alert.new(message: t("scalable_capital_items.setup_description")) %>
+        <% if @scalable_capital_item.errors.any? %>
+          <%= render DS::Alert.new(message: @scalable_capital_item.errors.full_messages.to_sentence, variant: :error) %>
+        <% end %>
+        <%= styled_form_with model: @scalable_capital_item, data: { turbo_frame: "_top" }, class: "space-y-4" do |form| %>
+          <%= form.text_field :name, label: t("scalable_capital_items.name"), required: true %>
+          <%= form.submit t("scalable_capital_items.create_connection") %>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+<% end %>

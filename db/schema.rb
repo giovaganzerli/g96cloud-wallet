@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_21_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -2282,6 +2282,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.index ["family_id"], name: "index_rules_on_family_id"
   end
 
+  create_table "scalable_capital_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "currency", default: "EUR", null: false
+    t.string "name", null: false
+    t.string "portfolio_id", null: false
+    t.string "provider_account_id", null: false
+    t.jsonb "raw_payload", default: {}, null: false
+    t.uuid "scalable_capital_item_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["scalable_capital_item_id", "portfolio_id"], name: "index_scalable_accounts_on_item_and_portfolio", unique: true
+    t.index ["scalable_capital_item_id"], name: "index_scalable_capital_accounts_on_scalable_capital_item_id"
+  end
+
+  create_table "scalable_capital_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "family_id", null: false
+    t.string "name", null: false
+    t.boolean "scheduled_for_deletion", default: false, null: false
+    t.string "status", default: "requires_update", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_scalable_capital_items_on_family_id"
+  end
+
   create_table "securities", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "asset_class"
     t.string "asset_sub_class"
@@ -3074,6 +3097,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
   add_foreign_key "rule_conditions", "rules"
   add_foreign_key "rule_runs", "rules"
   add_foreign_key "rules", "families"
+  add_foreign_key "scalable_capital_accounts", "scalable_capital_items"
+  add_foreign_key "scalable_capital_items", "families"
   add_foreign_key "security_prices", "securities"
   add_foreign_key "sessions", "impersonation_sessions", column: "active_impersonator_session_id", on_delete: :nullify
   add_foreign_key "sessions", "users"

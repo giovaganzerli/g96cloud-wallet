@@ -110,6 +110,7 @@ class Settings::ProvidersController < ApplicationController
 
   def connect_form
     provider_key = params[:provider_key]
+    return head :not_found if provider_key == "scalable_capital" && !Rails.application.config.app_mode.self_hosted?
 
     panel = FAMILY_PANELS.find { |p| p[:key] == provider_key }
     if panel
@@ -210,6 +211,7 @@ class Settings::ProvidersController < ApplicationController
       { key: "trading212",     title: "Trading 212",     turbo_id: "trading212", partial: "trading212_panel" },
       { key: "trade_republic", title: "Trade Republic",  turbo_id: "trade-republic", partial: "trade_republic_panel" },
       { key: "indexa_capital", title: "Indexa Capital",  turbo_id: "indexa_capital", partial: "indexa_capital_panel" },
+      { key: "scalable_capital", title: "Scalable Capital", turbo_id: "scalable_capital", partial: "scalable_capital_panel" },
       { key: "sophtron",       title: "Sophtron",        turbo_id: "sophtron",       partial: "sophtron_panel" },
       { key: "questrade",      title: "Questrade",       turbo_id: "questrade",      partial: "questrade_panel" }
     ].freeze
@@ -241,6 +243,7 @@ class Settings::ProvidersController < ApplicationController
       "trading212"     => "Trading212Item",
       "trade_republic" => "TradeRepublicItem",
       "indexa_capital" => "IndexaCapitalItem",
+      "scalable_capital" => "ScalableCapitalItem",
       "sophtron"       => "SophtronItem"
     }.freeze
 
@@ -290,6 +293,8 @@ class Settings::ProvidersController < ApplicationController
         @trade_republic_items = Current.family.trade_republic_items.active.ordered.includes(:trade_republic_accounts)
       when "indexa_capital"
         @indexa_capital_items = Current.family.indexa_capital_items.ordered
+      when "scalable_capital"
+        @scalable_capital_items = Current.family.scalable_capital_items.active.ordered
       when "sophtron"
         @sophtron_items = Current.family.sophtron_items.ordered
       when "questrade"
@@ -325,6 +330,7 @@ class Settings::ProvidersController < ApplicationController
       @trading212_items = Current.family.trading212_items.ordered
       @trade_republic_items = Current.family.trade_republic_items.active.ordered.includes(:trade_republic_accounts)
       @indexa_capital_items = Current.family.indexa_capital_items.ordered.select(:id)
+      @scalable_capital_items = Current.family.scalable_capital_items.active.ordered
       @binance_items = Current.family.binance_items.active.ordered
       @kraken_items = Current.family.kraken_items.active.ordered
       @coinspot_items = Current.family.coinspot_items.active.ordered
@@ -381,6 +387,7 @@ class Settings::ProvidersController < ApplicationController
         "trading212"     => @trading212_items,
         "trade_republic" => @trade_republic_items,
         "indexa_capital" => @indexa_capital_items,
+        "scalable_capital" => @scalable_capital_items,
         "sophtron"       => @sophtron_items
       }
     end
@@ -432,7 +439,8 @@ class Settings::ProvidersController < ApplicationController
         }
       end
 
-      family_entries = FAMILY_PANELS.map do |panel|
+      family_entries = FAMILY_PANELS.filter_map do |panel|
+        next if panel[:key] == "scalable_capital" && !Rails.application.config.app_mode.self_hosted?
         {
           provider_key: panel[:key],
           title: panel[:title],

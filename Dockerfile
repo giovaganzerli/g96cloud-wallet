@@ -21,6 +21,25 @@ ENV RAILS_ENV="production" \
     BUNDLE_WITHOUT="development" \
     BUILD_COMMIT_SHA=${BUILD_COMMIT_SHA}
 
+# Official Scalable CLI, pinned with architecture-specific release checksums.
+# Kept separate from the gem build so updates do not invalidate bundle install.
+FROM base AS scalable-cli
+ARG TARGETARCH
+RUN case "$TARGETARCH" in \
+      amd64) arch=x86_64; checksum=64aa3b566f52dab82abdb44c9f6c0a82628fbb392aff1450c84894908639acb8 ;; \
+      arm64) arch=aarch64; checksum=9e04c6f608bb1ac0ce4fa063f1971dece7a37842cbf1a6a231f497721298a4f8 ;; \
+      *) exit 1 ;; \
+    esac \
+    && curl --fail --location --silent --show-error --proto '=https' --tlsv1.2 \
+      "https://github.com/ScalableCapital/scalable-cli/releases/download/v1.1.0/sc-v1.1.0-linux-${arch}-gnu.tar.gz" -o /sc.tar.gz \
+    && echo "$checksum  /sc.tar.gz" | sha256sum --check --strict \
+    && mkdir /scalable-cli \
+    && tar -xzf /sc.tar.gz -C /scalable-cli --strip-components=1 \
+    && curl --fail --location --silent --show-error --proto '=https' --tlsv1.2 \
+      "https://raw.githubusercontent.com/ScalableCapital/scalable-cli/v1.1.0/LICENSE" -o /scalable-cli/LICENSE \
+    && echo 'd17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc  /scalable-cli/LICENSE' | sha256sum --check --strict \
+    && /scalable-cli/sc --version
+
 # Throw-away build stage to reduce size of final image
 FROM base AS build
 
@@ -46,6 +65,11 @@ RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
 # Final stage for app image
 FROM base
+
+COPY --from=scalable-cli /scalable-cli/sc /usr/local/bin/sc
+COPY --from=scalable-cli /scalable-cli/LICENSE /usr/local/share/scalable-cli/LICENSE
+COPY --from=scalable-cli /scalable-cli/THIRD_PARTY_NOTICES.md /usr/local/share/scalable-cli/THIRD_PARTY_NOTICES.md
+COPY --from=scalable-cli /scalable-cli/third_party_licenses /usr/local/share/scalable-cli/third_party_licenses
 
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \

@@ -34,6 +34,7 @@ class AccountsController < ApplicationController
     @snaptrade_items = visible_provider_items(family.snaptrade_items.ordered.with_attached_logo.includes(:snaptrade_accounts))
     @ibkr_items = visible_provider_items(family.ibkr_items.ordered.with_attached_logo.includes(:ibkr_accounts))
     @indexa_capital_items = visible_provider_items(family.indexa_capital_items.ordered.with_attached_logo.includes(:indexa_capital_accounts))
+    @scalable_capital_items = visible_provider_items(family.scalable_capital_items.ordered.includes(:accounts))
     @sophtron_items = visible_provider_items(family.sophtron_items.ordered.with_attached_logo.includes(:sophtron_accounts))
     @onchain_wallet_items = visible_provider_items(
       family.onchain_wallet_items.ordered.includes(:accounts, onchain_wallet_accounts: { account_provider: :account })
@@ -440,6 +441,7 @@ class AccountsController < ApplicationController
         @snaptrade_items,
         @ibkr_items,
         @indexa_capital_items,
+        @scalable_capital_items,
         @sophtron_items,
         @binance_items,
         @kraken_items,

@@ -1,0 +1,9 @@
+one:
+  family: dylan_family
+  name: Scalable Capital
+  status: requires_update
+
+other_family:
+  family: empty
+  name: Private Scalable Capital
+  status: requires_update

@@ -1,0 +1,22 @@
+it:
+  scalable_capital_items:
+    title: Scalable Capital
+    description: Importa gli investimenti tramite la CLI ufficiale Scalable
+    name: Nome del collegamento
+    status: Stato
+    create_connection: Crea collegamento
+    setup_description: "Integrazione self-hosted tramite la CLI ufficiale Scalable. Importa le posizioni attuali e lo storico contabilizzato disponibile per il portafoglio Broker. Gli ordini in sospeso non vengono importati. È richiesta l'autorizzazione sul server."
+    enable_cli: "Sul sito Scalable, apri Profilo → Sicurezza → Agentic Investing, abilita Scalable CLI e scegli l'accesso in sola lettura se disponibile."
+    login_on_server: "Dalla cartella del progetto Docker Compose esistente sul server, esegui il comando seguente. Apri personalmente il link di autorizzazione e conferma la 2FA. L'accesso avvia la prima importazione; le successive usano la sincronizzazione programmata della famiglia nell'app. Aggiungi il prefisso sudo o le opzioni di file Compose richieste dalla tua installazione."
+    security_notice: "Il flag di sola lettura della CLI è una protezione locale, non limita i permessi del token. L'app richiama solo comandi di lettura. I file di sessione sono sensibili: proteggi lo storage persistente e i backup. Scalable può richiedere periodicamente una nuova autorizzazione. Le operazioni contabilizzate non supportate interrompono la sincronizzazione anziché essere omesse senza avviso."
+    back: Torna ai conti
+    setup: Istruzioni di collegamento
+    sync: Sincronizza
+    sync_queued: Sincronizzazione Scalable Capital programmata.
+    disconnect: Scollega
+    disconnected: Collegamento in attesa di rimozione. I conti importati vengono conservati. Revoca anche l'accesso CLI su Scalable.
+    good: Collegato
+    requires_update: Autorizzazione sul server necessaria
+    syncing: Sincronizzazione in corso…
+    deletion_in_progress: Rimozione in corso
+    authorization_required: "Questo collegamento richiede l'autorizzazione sul server. Apri le istruzioni del collegamento ed esegui lì il comando di login."

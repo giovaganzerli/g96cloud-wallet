@@ -2,6 +2,9 @@ require "sidekiq/web"
 require "sidekiq/cron/web"
 
 Rails.application.routes.draw do
+  resources :scalable_capital_items, only: %i[new create show destroy] do
+    post :sync, on: :member
+  end
   resources :questrade_items, only: [ :index, :new, :create, :show, :edit, :update, :destroy ] do
     collection do
       get :preload_accounts

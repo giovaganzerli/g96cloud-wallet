@@ -1,0 +1,62 @@
+<%# locals: (scalable_capital_item:) %>
+<%= tag.div id: dom_id(scalable_capital_item) do %>
+  <%= render DS::Disclosure.new(variant: :card, open: true) do |disclosure| %>
+    <% disclosure.with_summary_content do %>
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <%= render ProviderLogo.new(provider_key: :scalable_capital) %>
+
+          <div class="pl-1 text-sm">
+            <div class="flex items-center gap-2">
+              <%= tag.p scalable_capital_item.name, class: "font-medium text-primary" %>
+              <% if scalable_capital_item.scheduled_for_deletion? %>
+                <p class="text-destructive text-sm animate-pulse"><%= t("scalable_capital_items.deletion_in_progress") %></p>
+              <% end %>
+            </div>
+            <% if scalable_capital_item.syncing? %>
+              <div class="text-secondary flex items-center gap-1">
+                <%= icon "loader", size: "sm", class: "animate-spin" %>
+                <%= tag.span t("scalable_capital_items.syncing") %>
+              </div>
+            <% else %>
+              <p class="text-secondary"><%= t("scalable_capital_items.#{scalable_capital_item.status}") %></p>
+            <% end %>
+          </div>
+        </div>
+
+        <% if Current.user&.admin? %>
+          <div class="flex items-center gap-2">
+            <%= icon(
+              "refresh-cw",
+              as_button: true,
+              href: sync_scalable_capital_item_path(scalable_capital_item),
+              disabled: scalable_capital_item.syncing? || scalable_capital_item.scheduled_for_deletion?
+            ) %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="space-y-4 mt-4">
+      <% if scalable_capital_item.sync_error.present? %>
+        <%= render DS::Alert.new(message: scalable_capital_item.sync_error, variant: :error) %>
+      <% end %>
+
+      <% if scalable_capital_item.requires_update? && !scalable_capital_item.scheduled_for_deletion? %>
+        <%= render DS::Alert.new(message: t("scalable_capital_items.authorization_required"), variant: :warning) %>
+      <% end %>
+
+      <% visible_accounts = scalable_capital_item.accounts & Current.user.accessible_accounts.to_a %>
+      <% if visible_accounts.any? %>
+        <%= render "accounts/index/account_groups", accounts: visible_accounts %>
+      <% end %>
+
+      <% if Current.user&.admin? %>
+        <div class="flex flex-wrap gap-2">
+          <%= render DS::Link.new(text: t("scalable_capital_items.setup"), href: scalable_capital_item_path(scalable_capital_item), frame: "_top", icon: "settings") %>
+          <%= render DS::Button.new(text: t("scalable_capital_items.disconnect"), href: scalable_capital_item_path(scalable_capital_item), method: :delete, confirm: CustomConfirm.for_resource_deletion(scalable_capital_item.name, high_severity: true), frame: "_top", icon: "unlink") %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

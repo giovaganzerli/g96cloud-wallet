@@ -1,0 +1,15 @@
+<%# locals: (scalable_capital_items: nil) %>
+<% items = local_assigns[:scalable_capital_items] || @scalable_capital_items || [] %>
+<div class="space-y-4">
+  <%= render DS::Alert.new(message: t("scalable_capital_items.setup_description")) %>
+  <%= render DS::Link.new(text: t("scalable_capital_items.create_connection"), href: new_scalable_capital_item_path, frame: :modal, icon: "plus") %>
+  <%= render DS::Table.new(rows: items, label: t("scalable_capital_items.title")) do |table| %>
+    <% table.with_column(t("scalable_capital_items.name")) do |item| %>
+      <div class="flex items-center gap-2">
+        <%= render ProviderLogo.new(provider_key: :scalable_capital) %>
+        <%= render DS::Link.new(text: item.name, href: scalable_capital_item_path(item), frame: "_top") %>
+      </div>
+    <% end %>
+    <% table.with_column(t("scalable_capital_items.status")) { |item| t("scalable_capital_items.#{item.status}") } %>
+  <% end %>
+</div>

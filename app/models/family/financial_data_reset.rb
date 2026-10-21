@@ -48,6 +48,7 @@ class Family::FinancialDataReset
     enable_banking_items
     ibkr_items
     indexa_capital_items
+    scalable_capital_items
     kraken_items
     questrade_items
     lunchflow_items

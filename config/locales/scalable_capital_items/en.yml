@@ -1,0 +1,22 @@
+en:
+  scalable_capital_items:
+    title: Scalable Capital
+    description: Import investments with the official Scalable CLI
+    name: Connection name
+    status: Status
+    create_connection: Create connection
+    setup_description: "Self-hosted integration using the official Scalable CLI. Imports current positions and available booked history for your Broker portfolio. Pending orders are not imported. Authorization on the server is required."
+    enable_cli: "On the Scalable website, open Profile → Security → Agentic Investing, enable Scalable CLI and choose read-only access if available."
+    login_on_server: "From your existing Docker Compose project directory on the server, run the command below. Open the authorization link yourself and approve 2FA. Login queues the initial import; subsequent imports use the app's scheduled family synchronization. Add the sudo prefix or Compose file overrides your installation requires."
+    security_notice: "The CLI read-only flag is a local safeguard, not a restriction on token permissions. This app only calls read commands. Session files are sensitive: protect the persistent storage and its backups. Scalable may periodically require reauthorization. Unsupported booked events fail synchronization instead of being silently omitted."
+    back: Back to accounts
+    setup: Connection instructions
+    sync: Synchronize
+    sync_queued: Scalable Capital synchronization queued.
+    disconnect: Disconnect
+    disconnected: Connection scheduled for removal. Imported accounts are kept. Revoke CLI access in Scalable as well.
+    good: Connected
+    requires_update: Server authorization required
+    syncing: Synchronizing…
+    deletion_in_progress: Removal in progress
+    authorization_required: "This connection needs authorization on the server. Open the connection instructions and run the login command there."

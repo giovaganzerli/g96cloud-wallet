@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+# Operator-driven Scalable Capital session management.
+#
+# The Scalable credentials never reach this application: the official CLI
+# performs the OAuth device flow and the trusted-device 2FA in the operator's
+# terminal. Run this inside the container that owns the persistent storage.
+#
+#   ruby bin/scalable-capital-session CONNECTION_UUID login
+#   ruby bin/scalable-capital-session CONNECTION_UUID logout
+require_relative "../config/environment"
+
+abort "Usage: ruby bin/scalable-capital-session CONNECTION_UUID login|logout" unless ARGV.size == 2 && %w[login logout].include?(ARGV[1])
+abort "Only available on self-hosted installations" unless Rails.application.config.app_mode.self_hosted?
+
+connection_id, action = ARGV
+item = ScalableCapitalItem.active.find_by(id: connection_id)
+abort "No active Scalable Capital connection with id #{connection_id}" if item.nil?
+
+begin
+  case action
+  when "login"
+    puts "Authorizing '#{item.name}'. Open the link Scalable shows and complete the 2FA prompt."
+    item.provider.login!
+    begin
+      item.sync_later
+      puts "Authorization complete. The initial synchronization is queued for the background worker."
+    rescue StandardError => e
+      # The session is already stored, so the connection is usable; only the
+      # queued first sync failed. Say so instead of implying the login failed.
+      warn "Authorization complete, but the first synchronization could not be queued (#{e.class}). Start it from the connection card."
+    end
+  when "logout"
+    begin
+      item.provider.logout!
+    rescue Provider::ScalableCapital::Error
+      # A missing or already expired session is not a failure to revoke it.
+      warn "No active CLI session was found; the connection is marked as unauthorized anyway."
+    end
+    item.update!(status: :requires_update)
+    puts "Scalable Capital session revoked. Imported accounts are unchanged."
+  end
+rescue Provider::ScalableCapital::Error => e
+  abort e.message
+end
