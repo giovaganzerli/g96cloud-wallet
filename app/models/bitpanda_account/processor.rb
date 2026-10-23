@@ -46,7 +46,7 @@ class BitpandaAccount::Processor
       else
         activity[:label]
       end
-      name = "#{label} #{activity[:quantity].abs.to_s('F')} #{activity[:symbol]}"
+      name = "#{label} #{activity[:quantity].to_d.abs.to_s('F')} #{activity[:symbol]}"
       if activity[:asset]
         existing = account.entries.find_by(source: "bitpanda", external_id: activity[:external_id])
         return if existing&.protected_from_sync?
@@ -85,7 +85,7 @@ class BitpandaAccount::Processor
         existing_estimate = extra.dig("cost_basis", "estimated_price").present?
         if estimate
           extra["cost_basis"] = {
-            "estimated_price" => estimate.price.to_s("F"),
+            "estimated_price" => estimate.price.to_d.to_s("F"),
             "estimated_currency" => estimate.currency,
             "estimated_on" => activity[:date].iso8601,
             "estimated_source" => "market_quote_at_deposit"

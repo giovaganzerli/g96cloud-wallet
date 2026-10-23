@@ -41,7 +41,9 @@ class BitpandaItem::SyncerTest < ActiveSupport::TestCase
         "flow" => "INCOMING", "credited_at" => "2026-10-21T12:00:00Z"
       } ]
     }
-    quote = OpenStruct.new(date: Date.new(2026, 10, 21), price: BigDecimal("60000"), currency: "EUR")
+    # Market providers return Float prices; the processor must not pass the
+    # BigDecimal-only "F" format to Float#to_s.
+    quote = OpenStruct.new(date: Date.new(2026, 10, 21), price: 60_000.0, currency: "EUR")
     Security.any_instance.stubs(:find_or_fetch_price).returns(quote)
 
     syncer.perform_sync(@sync)
