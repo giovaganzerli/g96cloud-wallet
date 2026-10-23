@@ -1,0 +1,29 @@
+it:
+  bitpanda_items:
+    title: Bitpanda
+    description: Importa il portafoglio e lo storico delle operazioni Bitpanda con una chiave API di sola lettura.
+    read_only_notice: "Crea una chiave Public API in Bitpanda, Impostazioni account → API, con i soli permessi Balances e Transaction. Non abilitare permessi di trading o scrittura Earn. La prima sincronizzazione legge tutto lo storico disponibile tramite API e crea un conto Crypto exchange valorizzato in EUR. Operazioni non supportate o prezzi storici mancanti interrompono la sincronizzazione, senza importare valori stimati."
+    name: Nome della connessione
+    api_key: Chiave API
+    keep_key: Lascia vuoto per mantenere la chiave esistente
+    create_connection: Collega Bitpanda
+    save_connection: Salva e sincronizza
+    back: Torna ai conti
+    manage: Gestisci connessione
+    status: Stato
+    good: Collegato
+    requires_update: Verifica chiave API e permessi di lettura
+    syncing: Sincronizzazione in corso…
+    deleting: Eliminazione in corso
+    sync: Sincronizza
+    sync_queued: Sincronizzazione Bitpanda accodata.
+    disconnect: Scollega
+    disconnected: Bitpanda scollegato. Conti e storico importati vengono conservati.
+    corrections_require_review: "Le rettifiche Bitpanda reclaim/refund sono state importate come movimenti non commerciali con costo di acquisto sconosciuto. Verificale con l'estratto Bitpanda prima di utilizzare i report di plusvalenze o fiscali."
+    activity_names:
+      reclaim: Recupero (da verificare)
+      refund: Rimborso (da verificare)
+  settings:
+    providers:
+      taglines:
+        bitpanda: Importa asset, saldi e storico delle operazioni Bitpanda con una chiave API di sola lettura.

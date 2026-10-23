@@ -26,9 +26,11 @@ it:
       manual: Impostato dall'utente
       calculated: Dai movimenti
       provider: Dal provider
+      estimated: Stimato al deposito
     cost_basis_cell:
       unknown: "--"
       set: Imposta
+      estimated_tooltip: Stimato dalla quotazione di mercato esatta del giorno del deposito. Inserisci il costo effettivo con la matita.
       set_cost_basis_header: "Imposta costo base per %{ticker} (%{qty} azioni)"
       total_cost_basis_label: Costo base totale
       or_per_share_label: "Oppure inserisci per azione:"
@@ -58,6 +60,7 @@ it:
       missing_data: Dati mancanti
     show:
       avg_cost_label: Costo Medio
+      estimated_cost_basis_note: Bitpanda ha importato il trasferimento in ingresso di questa posizione senza prezzo di acquisto. Costo medio e rendimento totale sono stimati con la quotazione di mercato del giorno del deposito; inserisci il costo effettivo con la matita.
       current_market_price_label: Prezzo di Mercato Attuale
       delete: Elimina
       delete_subtitle: Questo eliminerà la posizione e tutti i movimenti associati su questo conto. Questa azione non può essere annullata.

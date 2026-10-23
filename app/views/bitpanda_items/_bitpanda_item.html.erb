@@ -1,0 +1,31 @@
+<%# locals: (bitpanda_item:) %>
+<%= tag.div id: dom_id(bitpanda_item) do %>
+  <%= render DS::Disclosure.new(variant: :card, open: true) do |disclosure| %>
+    <% disclosure.with_summary_content do %>
+      <div class="flex items-center gap-2 text-primary">
+        <%= render ProviderLogo.new(provider_key: :bitpanda) %>
+        <%= tag.span bitpanda_item.name, class: "font-medium" %>
+        <%= tag.span t("bitpanda_items.#{bitpanda_item.scheduled_for_deletion? ? 'deleting' : (bitpanda_item.syncing? ? 'syncing' : bitpanda_item.status)}"), class: "text-sm text-secondary" %>
+      </div>
+    <% end %>
+    <div class="space-y-4 mt-4">
+      <% if bitpanda_item.sync_error.present? && Current.user&.admin? %>
+        <%= render DS::Alert.new(message: bitpanda_item.sync_error, variant: :error) %>
+      <% end %>
+      <% if Current.user&.admin? && bitpanda_item.review_required? %>
+        <%= render DS::Alert.new(message: t("bitpanda_items.corrections_require_review"), variant: :warning) %>
+      <% end %>
+      <% visible_accounts = bitpanda_item.accounts & Current.user.accessible_accounts.to_a %>
+      <% if visible_accounts.any? %>
+        <%= render "accounts/index/account_groups", accounts: visible_accounts %>
+      <% end %>
+      <% if Current.user&.admin? && !bitpanda_item.scheduled_for_deletion? %>
+        <div class="flex flex-wrap gap-2">
+          <%= render DS::Link.new(text: t("bitpanda_items.manage"), href: bitpanda_item_path(bitpanda_item), frame: "_top", icon: "settings") %>
+          <%= render DS::Button.new(text: t("bitpanda_items.sync"), href: sync_bitpanda_item_path(bitpanda_item), method: :post, disabled: bitpanda_item.syncing?, frame: "_top", icon: "refresh-cw") %>
+          <%= render DS::Button.new(text: t("bitpanda_items.disconnect"), href: bitpanda_item_path(bitpanda_item), method: :delete, confirm: CustomConfirm.for_resource_deletion(bitpanda_item.name, high_severity: true), frame: "_top", icon: "unlink") %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

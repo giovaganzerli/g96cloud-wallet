@@ -28,6 +28,11 @@ class UI::Account::ActivityFeed < ApplicationComponent
     feed_data.entries_by_date
   end
 
+  def crypto_rows
+    return {} unless account.crypto?
+    @crypto_rows ||= Crypto::Ledger.new(account, entries: feed_data.entries).rows.index_by { |row| row.entry.id }
+  end
+
   private
     def account
       feed_data.account

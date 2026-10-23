@@ -26,9 +26,11 @@ en:
       manual: User set
       calculated: From trades
       provider: From provider
+      estimated: Estimated at deposit
     cost_basis_cell:
       unknown: "--"
       set: Set
+      estimated_tooltip: Estimated from the exact-date market price on the day the asset was deposited. Set the actual cost with the pencil.
       set_cost_basis_header: "Set cost basis for %{ticker} (%{qty} shares)"
       total_cost_basis_label: Total cost basis
       or_per_share_label: "Or enter per share:"
@@ -59,6 +61,7 @@ en:
       missing_data: Missing data
     show:
       avg_cost_label: Average Cost
+      estimated_cost_basis_note: Bitpanda imported this position's inbound transfer without a purchase price. Average cost and total return are estimated from the exact-date market quote on the deposit day; set the actual cost with the pencil.
       current_market_price_label: Current Market Price
       delete: Delete
       delete_subtitle: This will delete the holding and all your associated trades

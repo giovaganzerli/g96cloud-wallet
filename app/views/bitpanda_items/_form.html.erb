@@ -1,0 +1,10 @@
+<%# locals: (bitpanda_item:) %>
+<%= render DS::Alert.new(message: t("bitpanda_items.read_only_notice")) %>
+<% if bitpanda_item.errors.any? %>
+  <%= render DS::Alert.new(message: bitpanda_item.errors.full_messages.to_sentence, variant: :error) %>
+<% end %>
+<%= styled_form_with model: bitpanda_item, data: { turbo_frame: "_top" }, class: "space-y-4" do |form| %>
+  <%= form.text_field :name, label: t("bitpanda_items.name"), required: true %>
+  <%= form.password_field :api_key, label: t("bitpanda_items.api_key"), value: nil, autocomplete: "new-password", required: bitpanda_item.new_record?, placeholder: bitpanda_item.persisted? ? t("bitpanda_items.keep_key") : nil %>
+  <%= form.submit t("bitpanda_items.save_connection") %>
+<% end %>

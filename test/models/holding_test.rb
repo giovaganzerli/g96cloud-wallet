@@ -20,6 +20,12 @@ class HoldingTest < ActiveSupport::TestCase
     assert_in_delta expected_nvda_weight, @nvda.weight, 0.001
   end
 
+  test "persists very small unit prices without rounding them to zero" do
+    price = BigDecimal("0.000000123456789012")
+    @amzn.update!(price: price)
+    assert_equal price, @amzn.reload.price
+  end
+
   test "calculates portfolio weight after converting foreign-currency holdings" do
     ExchangeRate.create!(from_currency: "EUR", to_currency: "USD", date: Date.current, rate: 1.5)
 
@@ -499,6 +505,62 @@ class HoldingTest < ActiveSupport::TestCase
       )
 
       assert_nil holding.avg_cost
+    end
+
+    # An exact-date market quote recorded for an inbound transfer is the only
+    # honest figure available. It participates in the average and is labelled as
+    # estimated, never presented as the movement's executed price.
+    test "an inbound transfer with a deposit-day estimate contributes to the average cost" do
+      holding = holdings(:one)
+      holding.update_columns(cost_basis: nil, cost_basis_source: nil)
+      holding.account.entries.create!(
+        date: holding.date,
+        name: "Received 5 units",
+        amount: 0,
+        currency: holding.currency,
+        entryable: Trade.new(
+          security: holding.security,
+          qty: 5,
+          price: 0,
+          currency: holding.currency,
+          investment_activity_label: Trade::TRANSFER_LABEL,
+          extra: { "cost_basis" => {
+            "estimated_price" => "300",
+            "estimated_currency" => "USD",
+            "estimated_on" => holding.date.iso8601
+          } }
+        )
+      )
+
+      expected = (BigDecimal("10") * BigDecimal("214") + BigDecimal("5") * BigDecimal("300")) / BigDecimal("15")
+      assert_equal Money.new(expected, "USD"), holding.reload.avg_cost
+      assert holding.cost_basis_estimated?
+      assert_equal I18n.t("holdings.cost_basis_sources.estimated"), holding.cost_basis_source_label
+      assert_not_nil holding.trend
+    end
+
+    test "a manual cost basis overrides the deposit-day estimate" do
+      holding = holdings(:one)
+      holding.update_columns(cost_basis: nil, cost_basis_source: nil)
+      holding.account.entries.create!(
+        date: holding.date,
+        name: "Received 5 units",
+        amount: 0,
+        currency: holding.currency,
+        entryable: Trade.new(
+          security: holding.security,
+          qty: 5,
+          price: 0,
+          currency: holding.currency,
+          investment_activity_label: Trade::TRANSFER_LABEL,
+          extra: { "cost_basis" => { "estimated_price" => "300", "estimated_currency" => "USD" } }
+        )
+      )
+      holding.reload.set_manual_cost_basis!(150)
+
+      assert_equal Money.new(150, "USD"), holding.reload.avg_cost
+      assert_not holding.cost_basis_estimated?
+      assert_equal I18n.t("holdings.cost_basis_sources.manual"), holding.cost_basis_source_label
     end
 
     # A figure the user typed is theirs, not ours to discard: they are saying

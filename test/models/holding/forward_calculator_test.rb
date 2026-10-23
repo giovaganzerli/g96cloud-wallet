@@ -164,6 +164,26 @@ class Holding::ForwardCalculatorTest < ActiveSupport::TestCase
     assert_not current.cost_basis_unknown, "an outbound-only transfer should not mark the basis unknown"
   end
 
+  # When the importer recorded an exact-date quote for the arriving units, the
+  # basis is an estimate rather than unknown, and the zero movement price must
+  # not enter the average.
+  test "an inbound transfer with a deposit-day estimate keeps the basis known" do
+    load_prices
+
+    create_trade(@voo, qty: 10, date: 4.days.ago.to_date, price: 460, account: @account)
+    transfer_in = create_trade(@voo, qty: 5, date: 3.days.ago.to_date, price: 0, account: @account)
+    transfer_in.entryable.update!(
+      investment_activity_label: Trade::TRANSFER_LABEL,
+      extra: { "cost_basis" => { "estimated_price" => "500", "estimated_currency" => "USD" } }
+    )
+
+    calculated = Holding::ForwardCalculator.new(@account).calculate
+    current = calculated.find { |h| h.security_id == @voo.id && h.date == Date.current }
+
+    assert_not current.cost_basis_unknown
+    assert_equal (BigDecimal("10") * 460 + BigDecimal("5") * 500) / 15, current.cost_basis
+  end
+
   # An inbound transfer marks the basis unknown while those units are held, but once
   # the position is fully closed and repurchased the new lot must read as known again.
   test "an inbound transfer stops shadowing the basis once the position is closed and repurchased" do

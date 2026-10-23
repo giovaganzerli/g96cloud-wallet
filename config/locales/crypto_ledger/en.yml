@@ -1,0 +1,58 @@
+en:
+  crypto_ledger:
+    title: Crypto movements
+    new: Add crypto movement
+    description: Description
+    occurred_at: Date and time
+    time_zone: Time zone
+    action: Action
+    symbol: Asset / currency
+    quantity: Native quantity
+    value_eur: Value in EUR
+    unit_price_eur: Unit price in EUR
+    price_source: Price source
+    fees: Fees
+    fee_eur: Fees paid in EUR
+    funded_from_wallet: The EUR payment/proceeds and fees use this wallet's EUR balance (off for external funding)
+    balance_after: Balance after movement
+    manual_balance_after: Known native balance after movement (optional)
+    counter_symbol: Asset received in the swap
+    counter_quantity: Quantity received
+    save: Save movement
+    saved: Crypto movement saved.
+    not_provided: Not provided
+    time_unavailable: Time not recorded
+    unspecified_unit: Unit not specified
+    source_notice: "Native quantities, fees and balances are distinct from cash flows. Bitpanda values are shown when provided; missing API fields are not replaced with zero. Descriptions fall back to the action and asset if the API supplies no text. Market quotes are identified separately from execution prices."
+    manual_notice: "Enter positive quantities; the action determines the direction. Manual prices or EUR values take priority. Empty fields can use a free Binance EUR quote from the selected minute (opening price, not an execution price). Missing pairs/history require manual input. Swap quantities refer to the asset spent and the asset received."
+    opening_unknown: "An existing nonzero opening value does not specify native quantities. Enter a known balance after a movement to anchor that currency's running balance."
+    manual_only: Only manual crypto accounts accept these movements.
+    provider_required: Enable Binance Public in market-data settings, or enter the EUR price manually.
+    quote_unavailable: No EUR quote is available for this asset and minute. Enter the execution price or EUR value manually.
+    invalid_time: Select a valid date, time and time zone, not in the future.
+    quote_loading: Looking up the historical EUR quote…
+    quoted_at: "Binance minute-opening quote at:"
+    lookup: Fill empty values from historical quote
+    inconsistent_value: Quantity multiplied by unit price must match the EUR value.
+    edited_counterpart: A manually edited fiat counterpart must be reconciled before replacing it with a grouped Bitpanda trade.
+    fee_kinds:
+      movement: movement
+      trading: trading
+    sources:
+      bitpanda: Bitpanda execution / ledger
+      bitpanda_fx: Bitpanda + dated FX
+      market_daily: Historical daily market quote
+      manual: Entered manually
+      manual_exchange_ratio: Derived from entered swap quantities
+      binance_public_1m_open: Binance minute-opening market quote
+      eur: EUR
+      not_provided: Not provided by the API
+    actions:
+      buy: Buy
+      sell: Sell
+      deposit: Deposit
+      withdrawal: Withdrawal
+      swap: Swap
+      reward: Reward
+      correction: Correction
+      other: Other movement

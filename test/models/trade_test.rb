@@ -3,6 +3,13 @@ require "test_helper"
 class TradeTest < ActiveSupport::TestCase
   include EntriesTestHelper
   include SqlQueryCapture
+
+  test "persists very small unit prices without rounding them to zero" do
+    trade = trades(:one)
+    price = BigDecimal("0.000000123456789012")
+    trade.update!(price: price)
+    assert_equal price, trade.reload.price
+  end
   # `Trend#value` is `current - previous`, and `Money#-` keeps the left
   # operand's currency while taking the right one's bare amount without
   # converting or raising. So a disposal priced in the security's currency had
@@ -204,11 +211,11 @@ class TradeTest < ActiveSupport::TestCase
     assert_includes trade.errors[:exchange_rate], "must be a number"
   end
 
-  test "price is rounded to 10 decimal places" do
+  test "price is rounded only beyond 18 decimal places" do
     security = Security.create!(ticker: "TEST", exchange_operating_mic: "XNAS")
 
-    # over 10 decimal places — will be rounded
-    price_with_too_many_decimals = BigDecimal("1.123456789012345")
+    # Preserve small-token precision and round only beyond the column scale.
+    price_with_too_many_decimals = BigDecimal("1.1234567890123456789")
     trade = Trade.create!(
       security: security,
       price: price_with_too_many_decimals,
@@ -219,7 +226,7 @@ class TradeTest < ActiveSupport::TestCase
 
     trade.reload
 
-    assert_equal BigDecimal("1.1234567890"), trade.price
+    assert_equal BigDecimal("1.123456789012345679"), trade.price
   end
 
   test "a transfer out realises nothing, however it is priced" do

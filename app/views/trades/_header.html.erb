@@ -1,5 +1,8 @@
 <%# locals: (entry:) %>
 
+<% if (crypto_row = crypto_ledger_row(entry)) %>
+  <%= render "crypto_activities/header", entry: entry, row: crypto_row %>
+<% else %>
 <div id="<%= dom_id(entry, :header) %>">
   <%= tag.header class: "mb-4 space-y-1" do %>
     <% label = entry.trade.investment_activity_label %>
@@ -87,3 +90,4 @@
   </div>
   <% end %>
 </div>
+<% end %>

@@ -188,29 +188,46 @@ module Security::Provided
   end
 
   def find_or_fetch_price(date: Date.current, cache: true)
-    price = prices.find_by(date: date)
+    cached_price = prices.find_by(date: date)
+    # Older four-decimal caches rounded small crypto quotes to zero. Treat
+    # those as recoverable gaps, without changing valid/non-crypto cache hits.
+    refresh_zero_price = cached_price&.price&.zero? && crypto?
 
-    return price if price.present?
+    return cached_price if cached_price.present? && !refresh_zero_price
 
     # Don't fetch prices for offline securities (e.g., custom tickers from SimpleFIN)
-    return nil if offline?
+    return cached_price if offline?
 
     # Make sure we have a data provider before fetching
-    return nil unless price_data_provider.present?
+    return cached_price unless price_data_provider.present?
     response = price_data_provider.fetch_security_price(
       symbol: ticker,
       exchange_operating_mic: exchange_operating_mic,
       date: date
     )
 
-    return nil unless response.success? # Provider error
+    return cached_price unless response.success? # Provider error
 
     price = response.data
-    Security::Price.find_or_create_by!(
-      security_id: self.id,
-      date: price.date,
-      currency: price.currency
-    ) { |record| record.price = price.price } if cache
+    if refresh_zero_price
+      # A repair must come from this day and currency, not a neighbouring
+      # quote or a synthetic spot-price fallback. Never delete cached rows.
+      value = price.price.to_d
+      unless price.date == date && price.currency == cached_price.currency && value.finite? && value.positive?
+        return cached_price
+      end
+      if cache
+        cached_price.with_lock do
+          cached_price.update!(price: price.price, provisional: false) if cached_price.price.zero?
+        end
+      end
+    elsif cache
+      Security::Price.find_or_create_by!(
+        security_id: self.id,
+        date: price.date,
+        currency: price.currency
+      ) { |record| record.price = price.price }
+    end
     price
   end
 

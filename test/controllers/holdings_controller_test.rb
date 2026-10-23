@@ -48,6 +48,38 @@ class HoldingsControllerTest < ActionDispatch::IntegrationTest
     assert_select "##{dom_id(holding)} p", text: "0.000000000000000148 shares"
   end
 
+  test "shows an estimated average cost for an inbound crypto transfer" do
+    account = accounts(:crypto)
+    security = Security.create!(ticker: "CRYPTO:EST", name: "Estimated Coin", offline: true)
+    holding = account.holdings.create!(
+      security: security, date: Date.current, qty: 15, price: 200, amount: 3000, currency: "USD"
+    )
+    account.entries.create!(
+      name: "Buy", date: 2.days.ago.to_date, amount: 1000, currency: "USD",
+      entryable: Trade.new(security: security, qty: 10, price: 100, currency: "USD", investment_activity_label: "Buy")
+    )
+    account.entries.create!(
+      name: "Deposit", date: 1.day.ago.to_date, amount: 0, currency: "USD",
+      entryable: Trade.new(
+        security: security, qty: 5, price: 0, currency: "USD",
+        investment_activity_label: Trade::TRANSFER_LABEL,
+        extra: { "cost_basis" => { "estimated_price" => "200", "estimated_currency" => "USD" } }
+      )
+    )
+
+    get holding_path(holding)
+
+    assert_response :success
+    assert_match "≈", response.body
+    assert_match "Bitpanda imported this position", response.body
+    assert_match "exact-date market quote", response.body
+
+    get holdings_url(account_id: account.id)
+
+    assert_response :success
+    assert_select "##{dom_id(holding)}", text: /≈/
+  end
+
   test "destroys holding and associated entries" do
     assert_difference -> { Holding.count } => -1,
                       -> { Entry.count } => -1 do

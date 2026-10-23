@@ -1,3 +1,4 @@
+<% crypto_row = crypto_ledger_row(@entry) %>
 <%= render DS::Dialog.new(frame: "drawer", responsive: true) do |dialog| %>
   <% dialog.with_header(custom_header: true) do %>
     <div class="relative">
@@ -10,7 +11,7 @@
   <% trade = @entry.trade %>
   <% dialog.with_body do %>
     <%= render "entries/protection_indicator", entry: @entry, unlock_path: unlock_trade_path(trade) %>
-    <% if trade.security&.provider_status == :provider_unavailable %>
+    <% if !crypto_row && trade.security&.provider_status == :provider_unavailable %>
       <div class="px-3 py-2">
         <%= render DS::Alert.new(
           message: t(".provider_disabled_warning", provider: trade.security.price_provider&.humanize || "Unknown"),
@@ -18,6 +19,14 @@
         ) %>
       </div>
     <% end %>
+    <% if crypto_row %>
+      <% dialog.with_section(title: t("transactions.show.overview"), open: true) do %>
+        <%= render "crypto_activities/overview", row: crypto_row %>
+      <% end %>
+      <% dialog.with_section(title: t(".details"), open: true) do %>
+        <%= render "crypto_activities/details", row: crypto_row %>
+      <% end %>
+    <% else %>
     <% dialog.with_section(title: t(".details"), open: true) do %>
       <div class="pb-4">
         <%= styled_form_with model: @entry,
@@ -74,6 +83,7 @@
           <% end %>
         <% end %>
       </div>
+    <% end %>
     <% end %>
     <% dialog.with_section(title: t(".additional")) do %>
       <div class="pb-4">

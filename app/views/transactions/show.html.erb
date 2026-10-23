@@ -1,3 +1,4 @@
+<% crypto_row = crypto_ledger_row(@entry) %>
 <%= render DS::Dialog.new(frame: "drawer", responsive: true) do |dialog| %>
   <% dialog.with_header(custom_header: true) do %>
     <div class="flex items-start justify-between gap-4">
@@ -50,6 +51,9 @@
     <% end %>
     <%= render "entries/protection_indicator", entry: @entry, unlock_path: unlock_transaction_path(@entry.transaction) %>
     <% dialog.with_section(title: t(".overview"), open: true) do %>
+      <% if crypto_row %>
+        <%= render "crypto_activities/overview", row: crypto_row %>
+      <% else %>
       <div>
         <% split_locked = @entry.split_child? || @entry.split_parent? %>
         <% edit_locked = !can_edit_entry? %>
@@ -95,9 +99,13 @@
           <% end %>
         <% end %>
       </div>
+      <% end %>
     <% end %>
     <% dialog.with_section(title: t(".details")) do %>
       <div class="space-y-2">
+        <% if crypto_row %>
+          <%= render "crypto_activities/details", row: crypto_row %>
+        <% end %>
         <%= styled_form_with model: @entry,
               url: transaction_path(@entry),
               class: "space-y-2",

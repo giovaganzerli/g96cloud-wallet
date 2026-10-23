@@ -89,16 +89,22 @@ class Holding::ForwardCalculator
 
         if trade.internal_movement?
           # An inbound transfer brings in units at a price nothing here knows, so
-          # it makes the whole position's cost basis unknowable. An outbound
-          # transfer only removes units, so relieve them at the running average
-          # (like a sell) rather than leaving them to contaminate a later buy.
+          # it makes the whole position's cost basis unknowable. When the
+          # importer recorded an exact-date market quote for cost-basis purposes,
+          # use that estimate instead of giving up. An outbound transfer only
+          # removes units, so relieve them at the running average (like a sell)
+          # rather than leaving them to contaminate a later buy.
           if trade.qty.positive?
-            @transferred_security_ids << security_id
+            if trade.estimated_cost_basis?
+              @cost_basis_trackers[security_id].apply(cost_basis_price(trade), trade.qty)
+            else
+              @transferred_security_ids << security_id
+            end
           else
-            @cost_basis_trackers[security_id].apply(converted_trade_price(trade), trade.qty)
+            @cost_basis_trackers[security_id].apply(cost_basis_price(trade), trade.qty)
           end
         else
-          @cost_basis_trackers[security_id].apply(converted_trade_price(trade), trade.qty)
+          @cost_basis_trackers[security_id].apply(cost_basis_price(trade), trade.qty)
         end
 
         portfolio[security_id] = previous_quantity + trade.qty

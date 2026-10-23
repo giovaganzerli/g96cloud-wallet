@@ -105,6 +105,13 @@ module SettingsHelper
     when "coinspot"
       return { status: :off } unless @coinspot_items&.any?
       sync_based_summary(key)
+    when "bitpanda"
+      return { status: :off } unless @bitpanda_items&.any?
+      if @bitpanda_items.any?(&:requires_update?)
+        { status: :warn, meta: t("bitpanda_items.requires_update") }
+      else
+        sync_based_summary(key)
+      end
     when "onchain_wallet"
       return { status: :off } unless @onchain_wallet_items&.any?
       sync_based_summary(key)

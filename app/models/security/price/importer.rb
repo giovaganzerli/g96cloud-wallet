@@ -231,11 +231,11 @@ class Security::Price::Importer
       # don't perpetually trip the "expected_count mismatch" re-sync. Query
       # directly rather than via db_prices (which stays at the full range to
       # preserve any user-entered rows pre-listing).
-      persisted_count = Security::Price
+      persisted_prices = Security::Price
         .where(security_id: security.id, date: clamped_start_date..end_date)
-        .count
+      persisted_prices = persisted_prices.where("price > 0") if security.crypto?
 
-      persisted_count == expected_count
+      persisted_prices.count == expected_count
     end
 
     def has_refetchable_provisional_prices?
@@ -277,7 +277,7 @@ class Security::Price::Importer
                                          .to_set
 
       (clamped_start_date..end_date).detect do |d|
-        !db_prices.key?(d) || refetchable_dates.include?(d)
+        !db_prices.key?(d) || (security.crypto? && !db_prices[d].price.positive?) || refetchable_dates.include?(d)
       end || end_date
     end
 

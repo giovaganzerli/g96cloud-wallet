@@ -205,6 +205,7 @@ class Settings::ProvidersController < ApplicationController
       { key: "binance",        title: "Binance",         turbo_id: "binance",        partial: "binance_panel" },
       { key: "kraken",         title: "Kraken",          turbo_id: "kraken",         partial: "kraken_panel" },
       { key: "coinspot",       title: "CoinSpot",        turbo_id: "coinspot",       partial: "coinspot_panel" },
+      { key: "bitpanda",       title: "Bitpanda",        turbo_id: "bitpanda",       partial: "bitpanda_panel" },
       { key: "onchain_wallet", title: "On-chain wallets", turbo_id: "onchain_wallet", partial: "onchain_wallet_panel" },
       { key: "snaptrade",      title: "SnapTrade",       turbo_id: "snaptrade",      partial: "snaptrade_panel", auto_open: "manage" },
       { key: "ibkr",           title: "Interactive Brokers", turbo_id: "ibkr",      partial: "ibkr_panel" },
@@ -236,6 +237,7 @@ class Settings::ProvidersController < ApplicationController
       "binance"        => "BinanceItem",
       "kraken"         => "KrakenItem",
       "coinspot"       => "CoinspotItem",
+      "bitpanda"       => "BitpandaItem",
       "onchain_wallet" => "OnchainWalletItem",
       "snaptrade"      => "SnaptradeItem",
       "questrade"      => "QuestradeItem",
@@ -281,6 +283,8 @@ class Settings::ProvidersController < ApplicationController
         @kraken_items = Current.family.kraken_items.active.ordered
       when "coinspot"
         @coinspot_items = Current.family.coinspot_items.active.ordered
+      when "bitpanda"
+        @bitpanda_items = Current.family.bitpanda_items.active.ordered
       when "onchain_wallet"
         @onchain_wallet_items = Current.family.onchain_wallet_items.active.ordered
       when "snaptrade"
@@ -334,6 +338,7 @@ class Settings::ProvidersController < ApplicationController
       @binance_items = Current.family.binance_items.active.ordered
       @kraken_items = Current.family.kraken_items.active.ordered
       @coinspot_items = Current.family.coinspot_items.active.ordered
+      @bitpanda_items = Current.family.bitpanda_items.active.ordered
       @onchain_wallet_items = Current.family.onchain_wallet_items.active.ordered
       @questrade_items = Current.family.questrade_items.active.ordered.select(:id)
       @fio_items = Current.family.fio_items.active.ordered
@@ -380,6 +385,7 @@ class Settings::ProvidersController < ApplicationController
         "binance"        => @binance_items,
         "kraken"         => @kraken_items,
         "coinspot"       => @coinspot_items,
+        "bitpanda"       => @bitpanda_items,
         "onchain_wallet" => @onchain_wallet_items,
         "snaptrade"      => @snaptrade_items,
         "questrade"      => @questrade_items,

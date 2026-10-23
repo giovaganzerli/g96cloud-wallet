@@ -1,0 +1,11 @@
+one:
+  family: dylan_family
+  name: My Bitpanda
+  api_key: bitpanda-test-key
+  status: good
+
+other_family:
+  family: empty
+  name: Private Bitpanda
+  api_key: other-bitpanda-test-key
+  status: good

@@ -43,12 +43,12 @@
         <% if item.is_a?(EntriesHelper::SplitGroup) %>
           <%= render "entries/split_group", split_group: item, view_ctx: "account" %>
         <% else %>
-          <%= render item, view_ctx: "account" %>
+          <%= render item, view_ctx: "account", crypto_row: crypto_rows[item.id] %>
         <% end %>
       <% end %>
     <% else %>
       <% entries.each do |entry| %>
-        <%= render entry, view_ctx: "account" %>
+        <%= render entry, view_ctx: "account", crypto_row: crypto_rows[entry.id] %>
       <% end %>
     <% end %>
   </div>

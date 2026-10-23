@@ -2,6 +2,12 @@ require "sidekiq/web"
 require "sidekiq/cron/web"
 
 Rails.application.routes.draw do
+  resources :crypto_activities, only: %i[new create] do
+    get :quote, on: :collection
+  end
+  resources :bitpanda_items, only: %i[new create show update destroy] do
+    post :sync, on: :member
+  end
   resources :scalable_capital_items, only: %i[new create show destroy] do
     post :sync, on: :member
   end

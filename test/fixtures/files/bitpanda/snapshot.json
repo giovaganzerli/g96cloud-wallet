@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-23",
+  "currencies": [{"id": "eur", "symbol": "EUR", "name": "Euro"}],
+  "assets": [{"id": "btc", "symbol": "BTC", "name": "Bitcoin", "type": "cryptocoin", "group": "coin"}],
+  "portfolio": [
+    {"asset_id": "btc", "balance": {"value": "0.01", "asset_id": "btc"}, "currency_balance": {"value": "600", "currency_id": "eur"}},
+    {"currency_id": "eur", "balance": {"value": "100", "currency_id": "eur"}, "available_balance": {"value": "100", "currency_id": "eur"}}
+  ],
+  "operations": [
+    {"operation_id": "deposit", "operation_type": "DEPOSIT", "transactions": [
+      {"transaction_id": "deposit-eur", "currency_id": "eur", "asset_amount": {"value": "600", "currency_id": "eur"}, "transaction_type": "DEPOSIT", "flow": "INCOMING", "credited_at": "2026-10-21T12:00:00Z"}
+    ]},
+    {"operation_id": "buy", "operation_type": "TRADE", "transactions": [
+      {"transaction_id": "buy-btc", "asset_id": "btc", "asset_amount": {"value": "0.01", "asset_id": "btc"}, "transaction_type": "BUY", "flow": "INCOMING", "credited_at": "2026-10-22T12:00:00Z", "trade": {"trade_id": "trade-1"}},
+      {"transaction_id": "buy-eur", "currency_id": "eur", "asset_amount": {"value": "500", "currency_id": "eur"}, "transaction_type": "SELL", "flow": "OUTGOING", "credited_at": "2026-10-22T12:00:00Z", "trade": {"trade_id": "trade-1"}}
+    ]}
+  ]
+}

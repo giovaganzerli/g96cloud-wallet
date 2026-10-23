@@ -70,6 +70,23 @@ class Trade < ApplicationRecord
     INTERNAL_MOVEMENT_LABELS.include?(investment_activity_label)
   end
 
+  # Some providers import an inbound asset transfer without an execution price
+  # but can supply the exact-date market quote. That quote is never presented as
+  # the movement's traded price; it only values the arriving units for cost-basis
+  # purposes so the position can report an average cost instead of "unknown".
+  # Callers label the resulting basis as estimated instead of executed.
+  def estimated_cost_basis_price
+    extra&.dig("cost_basis", "estimated_price")
+  end
+
+  def estimated_cost_basis_currency
+    extra&.dig("cost_basis", "estimated_currency")
+  end
+
+  def estimated_cost_basis?
+    estimated_cost_basis_price.present?
+  end
+
   class << self
     def build_name(type, qty, ticker)
       prefix = type == "buy" ? "Buy" : "Sell"

@@ -74,6 +74,68 @@ class Security::PriceTest < ActiveSupport::TestCase
     assert_not @security.find_or_fetch_price(date: Date.current)
   end
 
+  test "persists sub-cent crypto prices without rounding them to zero" do
+    price = BigDecimal("0.000000123456789012")
+    record = @security.prices.create!(date: Date.new(2025, 7, 23), price: price, currency: "EUR")
+    assert_equal price, record.reload.price
+  end
+
+  test "repairs a rounded zero crypto cache from the exact date provider quote" do
+    @security.update!(ticker: "PEPEEUR", exchange_operating_mic: Provider::BinancePublic::BINANCE_MIC)
+    date = Date.new(2025, 7, 23)
+    cached = @security.prices.create!(date: date, price: 0, currency: "EUR")
+    quote = OpenStruct.new(date: date, price: BigDecimal("0.000012345678901234"), currency: "EUR")
+    expect_provider_price(security: @security, price: quote, date: date)
+
+    assert_no_difference "Security::Price.count" do
+      assert_equal quote.price, @security.find_or_fetch_price(date: date).price
+    end
+    assert_equal quote.price, cached.reload.price
+  end
+
+  test "cache false fetches a valid crypto quote without modifying the zero cache" do
+    @security.update!(ticker: "PEPEEUR", exchange_operating_mic: Provider::BinancePublic::BINANCE_MIC)
+    date = Date.new(2025, 7, 23)
+    cached = @security.prices.create!(date: date, price: 0, currency: "EUR")
+    quote = OpenStruct.new(date: date, price: BigDecimal("0.00001234"), currency: "EUR")
+    expect_provider_price(security: @security, price: quote, date: date)
+
+    assert_equal quote.price, @security.find_or_fetch_price(date: date, cache: false).price
+    assert_equal 0, cached.reload.price
+  end
+
+  test "zero crypto caches are not replaced by wrong date currency or nonpositive quotes" do
+    @security.update!(ticker: "PEPEEUR", exchange_operating_mic: Provider::BinancePublic::BINANCE_MIC)
+    date = Date.new(2025, 7, 23)
+    cached = @security.prices.create!(date: date, price: 0, currency: "EUR")
+    [ OpenStruct.new(date: date.prev_day, price: BigDecimal("0.00001"), currency: "EUR"),
+      OpenStruct.new(date: date, price: BigDecimal("0.00001"), currency: "USD"),
+      OpenStruct.new(date: date, price: BigDecimal("Infinity"), currency: "EUR"),
+      OpenStruct.new(date: date, price: BigDecimal("NaN"), currency: "EUR"),
+      OpenStruct.new(date: date, price: 0, currency: "EUR") ].each do |quote|
+      expect_provider_price(security: @security, price: quote, date: date)
+      assert_equal cached.id, @security.find_or_fetch_price(date: date).id
+      assert_equal 0, cached.reload.price
+    end
+  end
+
+  test "a zero crypto cache survives an upstream error without replacement" do
+    @security.update!(ticker: "PEPEEUR", exchange_operating_mic: Provider::BinancePublic::BINANCE_MIC)
+    date = Date.new(2025, 7, 23)
+    cached = @security.prices.create!(date: date, price: 0, currency: "EUR")
+    @provider.expects(:fetch_security_price).returns(provider_error_response(Provider::Error.new("Unavailable")))
+
+    assert_equal cached, @security.find_or_fetch_price(date: date)
+    assert_equal 0, cached.reload.price
+  end
+
+  test "zero non crypto cache entries are not automatically overwritten" do
+    date = Date.new(2025, 7, 23)
+    cached = @security.prices.create!(date: date, price: 0, currency: "USD")
+    @provider.expects(:fetch_security_price).never
+    assert_equal cached, @security.find_or_fetch_price(date: date)
+  end
+
   private
     def expect_provider_price(security:, price:, date:)
       @provider.expects(:fetch_security_price)

@@ -1,0 +1,7 @@
+<%# locals: (row:) %>
+<dl class="space-y-3 px-3 py-2">
+  <% crypto_detail_fields(row).each do |key, value| %>
+    <%= render DS::DetailRow.new(label: t("crypto_ledger.#{key}"), value: value, value_class: "privacy-sensitive") %>
+  <% end %>
+</dl>
+<%= render DS::Alert.new(message: t("crypto_ledger.source_notice")) %>

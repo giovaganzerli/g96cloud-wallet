@@ -1,0 +1,47 @@
+<%= turbo_frame_tag "modal" do %>
+  <%= render DS::Dialog.new do |dialog| %>
+    <% dialog.with_header(title: t("crypto_ledger.new")) %>
+    <% dialog.with_body do %>
+      <div class="space-y-4">
+        <%= render DS::Alert.new(message: t("crypto_ledger.manual_notice")) %>
+        <% if @activity.errors.any? %>
+          <%= render DS::Alert.new(message: @activity.errors.full_messages.to_sentence, variant: :error) %>
+        <% end %>
+        <%= styled_form_with model: @activity, scope: :crypto_activity, url: crypto_activities_path(account_id: @account.id),
+              data: { turbo_frame: "_top", controller: "crypto-activity-form", crypto_activity_form_quote_url_value: quote_crypto_activities_path(account_id: @account.id),
+                crypto_activity_form_loading_value: t("crypto_ledger.quote_loading"), crypto_activity_form_unavailable_value: t("crypto_ledger.quote_unavailable"),
+                crypto_activity_form_quoted_value: t("crypto_ledger.quoted_at") }, class: "space-y-4" do |form| %>
+          <%= form.text_field :description, label: t("crypto_ledger.description"), required: true %>
+          <%= form.hidden_field :suggested_price, data: { crypto_activity_form_target: "suggestedPrice" } %>
+          <%= form.select :kind, Crypto::ActivityForm::ACTIONS.map { |kind| [t("crypto_ledger.actions.#{kind}"), kind] },
+                { label: t("crypto_ledger.action") }, { data: { crypto_activity_form_target: "kind", action: "change->crypto-activity-form#changeKind" } } %>
+          <%= form.datetime_local_field :occurred_at, label: t("crypto_ledger.occurred_at"), required: true,
+                data: { crypto_activity_form_target: "occurredAt", action: "change->crypto-activity-form#marketChanged" } %>
+          <%= form.select :time_zone, ActiveSupport::TimeZone.all.map { |zone| [zone.to_s, zone.tzinfo.name] }.uniq,
+                { label: t("crypto_ledger.time_zone") }, { data: { crypto_activity_form_target: "timeZone", action: "change->crypto-activity-form#marketChanged" } } %>
+          <%= form.text_field :symbol, label: t("crypto_ledger.symbol"), placeholder: "BTC, ETH, XRP, EUR", required: true,
+                data: { crypto_activity_form_target: "symbol", action: "change->crypto-activity-form#marketChanged" } %>
+          <%= form.number_field :quantity, label: t("crypto_ledger.quantity"), min: 0, step: "any", required: true,
+                data: { crypto_activity_form_target: "quantity", action: "input->crypto-activity-form#quantityChanged" } %>
+          <%= form.number_field :unit_price_eur, label: t("crypto_ledger.unit_price_eur"), min: 0, step: "any",
+                data: { crypto_activity_form_target: "price", action: "input->crypto-activity-form#priceChanged" } %>
+          <%= form.number_field :value_eur, label: t("crypto_ledger.value_eur"), min: 0, step: "any",
+                data: { crypto_activity_form_target: "value", action: "input->crypto-activity-form#valueChanged" } %>
+          <%= render DS::Button.new(text: t("crypto_ledger.lookup"), variant: :secondary, data: { action: "click->crypto-activity-form#lookup" }) %>
+          <p class="text-sm text-secondary" role="status" data-crypto-activity-form-target="status"></p>
+          <%= form.number_field :fee_eur, label: t("crypto_ledger.fee_eur"), min: 0, step: "any" %>
+          <div class="flex items-center gap-2 text-sm text-primary">
+            <%= form.toggle :funded_from_wallet %>
+            <%= form.label :funded_from_wallet, t("crypto_ledger.funded_from_wallet") %>
+          </div>
+          <div class="space-y-4" data-crypto-activity-form-target="counterpart" hidden>
+            <%= form.text_field :counter_symbol, label: t("crypto_ledger.counter_symbol") %>
+            <%= form.number_field :counter_quantity, label: t("crypto_ledger.counter_quantity"), min: 0, step: "any" %>
+          </div>
+          <%= form.number_field :balance_after, label: t("crypto_ledger.manual_balance_after"), min: 0, step: "any" %>
+          <%= form.submit t("crypto_ledger.save") %>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+<% end %>

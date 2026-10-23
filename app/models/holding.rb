@@ -248,8 +248,31 @@ class Holding < ApplicationRecord
     cost_basis.present? && cost_basis.positive? && cost_basis_source.present?
   end
 
+  # True when the displayed basis relies on a market quote recorded for an
+  # inbound transfer rather than on an execution price. A user-set basis always
+  # wins and is never described as estimated.
+  def cost_basis_estimated?
+    return @cost_basis_estimated if defined?(@cost_basis_estimated)
+
+    @cost_basis_estimated =
+      if cost_basis_locked? || cost_basis_source == "manual"
+        false
+      elsif cost_basis.present? && cost_basis.positive? && cost_basis_source.present? && cost_basis_source != "calculated"
+        false
+      else
+        account.trades
+          .with_entry
+          .where(security_id: security_id)
+          .where("entries.date <= ?", date)
+          .where("trades.qty > 0")
+          .where("trades.extra -> 'cost_basis' ->> 'estimated_price' IS NOT NULL")
+          .exists?
+      end
+  end
+
   # Human-readable source label for UI display
   def cost_basis_source_label
+    return I18n.t("holdings.cost_basis_sources.estimated") if cost_basis_estimated?
     return nil unless cost_basis_source.present?
 
     I18n.t("holdings.cost_basis_sources.#{cost_basis_source}")
@@ -278,8 +301,33 @@ class Holding < ApplicationRecord
     # Calculates weighted average cost from buy trades.
     # Returns nil if no trades exist (cost basis is unknown).
     def calculate_avg_cost
-      trades = account.trades
+      base_trades = account.trades
         .with_entry
+        .where(security_id: security.id)
+        .where("entries.date <= ?", date)
+
+      # An inbound transfer is not a purchase: securities moved in from
+      # elsewhere were acquired at a price nothing here knows. Treating the day
+      # they arrived as their cost states a number that looks authoritative and
+      # is wrong. When the importer recorded an exact-date market quote for
+      # cost-basis purposes, however, that estimate is the best number available
+      # and is labelled as estimated in the UI.
+      inbound_transfers = base_trades
+        .where(investment_activity_label: Trade::INTERNAL_MOVEMENT_LABELS)
+        .where("trades.qty > 0")
+
+      return nil if inbound_transfers
+        .where("trades.extra -> 'cost_basis' ->> 'estimated_price' IS NULL")
+        .exists?
+
+      # Purchases carry executed prices; internal movements are valued separately
+      # below so a transfer's zero movement price never enters the average.
+      purchases = base_trades
+        .where("trades.qty > 0")
+        .where(
+          "trades.investment_activity_label NOT IN (?) OR trades.investment_activity_label IS NULL",
+          Trade::INTERNAL_MOVEMENT_LABELS
+        )
         .joins(ActiveRecord::Base.sanitize_sql_array([
           "LEFT JOIN exchange_rates ON (
             exchange_rates.date = entries.date AND
@@ -287,35 +335,31 @@ class Holding < ApplicationRecord
             exchange_rates.to_currency = ?
           )", account.currency
         ]))
-        .where(security_id: security.id)
-        .where("trades.qty > 0 AND entries.date <= ?", date)
 
-      # An internal movement is not a purchase: securities moved in from elsewhere were
-      # acquired at a price nothing here knows, so treating the day they
-      # arrived as their cost states a number that looks authoritative and is
-      # wrong — a coin bought at 30k and moved in at 60k would report no gain.
-      #
-      # One internal movement makes the whole position unknown, rather than just its own
-      # row. Averaging the purchases alone and applying that to every unit is
-      # the same fabrication in a quieter form: buy one at 30k, receive one, and
-      # the position would report 30k a unit for two units it did not cost that.
-      return nil if trades.where(investment_activity_label: Trade::INTERNAL_MOVEMENT_LABELS).exists?
-
-      # IS DISTINCT FROM, because `!=` is NULL for an unlabelled row and would
-      # drop the ordinary purchases that carry no label at all.
-      trades = trades.where(
-        "trades.investment_activity_label NOT IN (?) OR trades.investment_activity_label IS NULL",
-        Trade::INTERNAL_MOVEMENT_LABELS
-      )
-
-      total_cost, total_qty = trades.pick(
+      total_cost, total_qty = purchases.pick(
         Arel.sql("SUM(trades.price * trades.qty * COALESCE(exchange_rates.rate, 1))"),
         Arel.sql("SUM(trades.qty)")
       )
 
+      total_cost ||= BigDecimal("0")
+      total_qty ||= BigDecimal("0")
+
+      inbound_transfers
+        .where("trades.extra -> 'cost_basis' ->> 'estimated_price' IS NOT NULL")
+        .find_each do |trade|
+          estimate = trade.estimated_cost_basis_price.to_d
+          estimate_currency = trade.estimated_cost_basis_currency.presence || trade.currency
+          estimate = Money.new(estimate, estimate_currency).exchange_to(self.currency).amount
+          total_cost += estimate * trade.qty
+          total_qty += trade.qty
+        rescue Money::ConversionError
+          total_cost += estimate * trade.qty
+          total_qty += trade.qty
+        end
+
       # Return nil when no trades exist - cost basis is genuinely unknown
       # Previously this fell back to current market price, which was misleading
-      return nil unless total_qty && total_qty > 0
+      return nil unless total_qty.positive?
 
       Money.new(total_cost / total_qty, currency)
     end

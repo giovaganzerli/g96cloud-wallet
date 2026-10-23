@@ -18,6 +18,15 @@
                 data: { turbo_frame: :modal }) %>
           <% end %>
 
+          <% if account.crypto? && Account.writable_by(Current.user).exists?(id: account.id) %>
+            <% menu.with_item(
+                variant: "link",
+                text: t("crypto_ledger.new"),
+                icon: "arrow-left-right",
+                href: new_crypto_activity_path(account_id: account.id),
+                data: { turbo_frame: :modal }) %>
+          <% end %>
+
           <% unless account.crypto? %>
             <% if account.investment? %>
               <% menu.with_item(
@@ -159,7 +168,8 @@
             <% activity_dates.each do |activity_date_data| %>
               <%= render UI::Account::ActivityDate.new(
                     account: account,
-                    data: activity_date_data
+                    data: activity_date_data,
+                    crypto_rows: crypto_rows
                   ) %>
             <% end %>
           </div>

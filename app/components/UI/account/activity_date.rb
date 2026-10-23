@@ -1,11 +1,12 @@
 class UI::Account::ActivityDate < ApplicationComponent
-  attr_reader :account, :data
+  attr_reader :account, :data, :crypto_rows
 
   delegate :date, :entries, :balance, :transfers, :split_parents, to: :data
 
-  def initialize(account:, data:)
+  def initialize(account:, data:, crypto_rows: {})
     @account = account
     @data = data
+    @crypto_rows = crypto_rows
   end
 
   def id

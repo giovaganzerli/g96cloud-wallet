@@ -81,6 +81,21 @@ class Security::Price::ImporterTest < ActiveSupport::TestCase
     ).import_provider_prices
   end
 
+  test "rounded zero crypto cache entries do not make a price range complete" do
+    @security.update!(ticker: "PEPEEUR", exchange_operating_mic: Provider::BinancePublic::BINANCE_MIC)
+    date = Date.new(2025, 7, 23)
+    cached = @security.prices.create!(date: date, price: 0, currency: "EUR")
+    price = BigDecimal("0.000012345678901234")
+    @provider.expects(:fetch_security_prices)
+      .with(symbol: @security.ticker, exchange_operating_mic: @security.exchange_operating_mic,
+        start_date: get_provider_fetch_start_date(date), end_date: date)
+      .returns(provider_success_response([ OpenStruct.new(date: date, price: price, currency: "EUR") ]))
+
+    Security::Price::Importer.new(security: @security, security_provider: @provider, start_date: date, end_date: date).import_provider_prices
+
+    assert_equal price, cached.reload.price
+  end
+
   test "logs provider fetch failures to debug log" do
     Security::Price.delete_all
 

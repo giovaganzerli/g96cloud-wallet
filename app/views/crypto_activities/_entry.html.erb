@@ -1,0 +1,32 @@
+<%# locals: (entry:, row:) %>
+<%= turbo_frame_tag dom_id(entry) do %>
+  <%= turbo_frame_tag dom_id(entry.entryable) do %>
+    <div class="group grid grid-cols-12 items-center gap-2 text-sm font-medium p-4 <%= entry.excluded? ? "text-secondary bg-surface-inset" : "text-primary" %>"
+         data-controller="clickable-row" data-action="click->clickable-row#open">
+      <div class="col-span-8 lg:col-span-5 flex items-center gap-4 min-w-0">
+        <%= check_box_tag dom_id(entry, "selection"),
+              class: "checkbox checkbox--light hidden lg:block",
+              data: { id: entry.id, entry_type: entry.entryable_type, bulk_select_target: "row",
+                action: "bulk-select#toggleRowSelection", checkbox_toggle_target: "selectionEntry" } %>
+        <div class="hidden lg:flex">
+          <%= render DS::FilledIcon.new(variant: :text, text: row.symbol, size: "lg", rounded: true) %>
+        </div>
+        <div class="min-w-0">
+          <%= link_to row.description, entry_path(entry), class: "block truncate hover:underline",
+                data: { turbo_frame: "drawer", turbo_prefetch: false, clickable_row_target: "link" } %>
+          <p class="text-xs text-secondary truncate"><%= entry.account.name %> · <%= crypto_time_label(row) %></p>
+          <div class="lg:hidden mt-1">
+            <%= render DS::Pill.new(label: crypto_action_label(row), tone: crypto_action_tone(row), marker: false) %>
+          </div>
+        </div>
+      </div>
+      <div class="hidden lg:flex col-span-3">
+        <%= render DS::Pill.new(label: crypto_action_label(row), tone: crypto_action_tone(row), marker: false) %>
+      </div>
+      <div class="col-span-4 text-right min-w-0 break-words privacy-sensitive">
+        <p class="<%= !entry.excluded? && row.quantity.positive? ? "text-success" : "text-primary" %>"><%= crypto_native(row.quantity, row.symbol, signed: true) %></p>
+        <p class="text-xs text-secondary"><%= crypto_euro(row.euro_value, signed: true) %></p>
+      </div>
+    </div>
+  <% end %>
+<% end %>

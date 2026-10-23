@@ -6,22 +6,28 @@
   current_per_share = holding.cost_basis.present? && holding.cost_basis.positive? ? holding.cost_basis : nil
   current_total = current_per_share && holding.qty.positive? ? (current_per_share * holding.qty).round(2) : nil
   currency = Money::Currency.new(holding.currency)
+  avg_cost = holding.avg_cost
+  estimated = avg_cost.present? && holding.cost_basis_estimated?
 %>
 
 <%= turbo_frame_tag dom_id(holding, :cost_basis) do %>
   <% if holding.cost_basis_locked? && !editable %>
     <%# Locked and not editable (from holdings list) - just show value, right-aligned %>
     <div class="flex items-center justify-end gap-1">
-      <%= tag.span format_money(holding.avg_cost), class: "privacy-sensitive" %>
+      <%= tag.span class: "privacy-sensitive", title: (t(".estimated_tooltip") if estimated) do %>
+        <%= "≈ " if estimated %><%= format_money(avg_cost) %>
+      <% end %>
       <%= icon "lock", size: "xs", class: "text-secondary" %>
     </div>
   <% else %>
     <%# Unlocked OR editable context (drawer) - show clickable menu %>
     <%= render DS::Popover.new(variant: :button, placement: "bottom-end") do |popover| %>
       <% popover.with_button(class: "hover:text-primary cursor-pointer group") do %>
-        <% if holding.avg_cost %>
+        <% if avg_cost %>
           <div class="flex items-center gap-1">
-            <%= tag.span format_money(holding.avg_cost), class: "privacy-sensitive" %>
+            <%= tag.span class: "privacy-sensitive", title: (t(".estimated_tooltip") if estimated) do %>
+              <%= "≈ " if estimated %><%= format_money(avg_cost) %>
+            <% end %>
             <% if holding.cost_basis_locked? %>
               <%= icon "lock", size: "xs", class: "text-secondary" %>
             <% end %>
@@ -43,10 +49,10 @@
           </h4>
           <%
             form_data = { turbo: false }
-            if holding.avg_cost
+            if avg_cost
               form_data[:turbo_confirm] = {
                 title: t(".overwrite_confirm_title"),
-                body: t(".overwrite_confirm_body", current: format_money(holding.avg_cost))
+                body: t(".overwrite_confirm_body", current: format_money(avg_cost))
               }
             end
           %>

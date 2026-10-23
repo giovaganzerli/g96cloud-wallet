@@ -107,17 +107,20 @@
             currency = Money::Currency.new(@holding.currency)
             current_per_share = @holding.cost_basis.present? && @holding.cost_basis.positive? ? @holding.cost_basis : nil
             current_total = current_per_share && @holding.qty.positive? ? (current_per_share * @holding.qty).round(2) : nil
+            avg_cost = @holding.avg_cost
+            estimated = avg_cost.present? && @holding.cost_basis_estimated?
+            source_label = avg_cost ? @holding.cost_basis_source_label : nil
           %>
           <div data-controller="drawer-cost-basis" data-drawer-cost-basis-qty-value="<%= @holding.qty %>">
             <div class="flex items-center justify-between text-sm">
               <dt class="text-secondary"><%= t(".avg_cost_label") %></dt>
               <dd class="text-primary flex items-center gap-1">
-                <%= @holding.avg_cost ? format_money(@holding.avg_cost) : t(".unknown") %>
+                <%= "≈ " if estimated %><%= avg_cost ? format_money(avg_cost) : t(".unknown") %>
                 <% if @holding.cost_basis_locked? %>
                   <%= icon "lock", size: "xs", class: "text-secondary" %>
                 <% end %>
-                <% if @holding.cost_basis_source.present? %>
-                  <span class="text-xs text-secondary">(<%= @holding.cost_basis_source_label %>)</span>
+                <% if source_label %>
+                  <span class="text-xs text-secondary">(<%= source_label %>)</span>
                 <% end %>
                 <button type="button" class="ml-1" data-action="click->drawer-cost-basis#toggle">
                   <%= icon "pencil", size: "xs", class: "text-secondary hover:text-primary" %>
@@ -128,10 +131,10 @@
             <div class="hidden mt-3 space-y-3" data-drawer-cost-basis-target="form">
               <%
                 drawer_form_data = { turbo: false }
-                if @holding.avg_cost
+                if avg_cost
                   drawer_form_data[:turbo_confirm] = {
                     title: t("holdings.cost_basis_cell.overwrite_confirm_title"),
-                    body: t("holdings.cost_basis_cell.overwrite_confirm_body", current: format_money(@holding.avg_cost))
+                    body: t("holdings.cost_basis_cell.overwrite_confirm_body", current: format_money(avg_cost))
                   }
                 end
               %>
@@ -193,8 +196,8 @@
           <div class="flex items-center justify-between text-sm">
             <dt class="text-secondary"><%= t(".book_value_label") %></dt>
             <dd class="text-primary">
-              <% book_value = @holding.avg_cost ? @holding.avg_cost * @holding.qty : nil %>
-              <%= book_value ? format_money(book_value) : t(".unknown") %>
+              <% book_value = avg_cost ? avg_cost * @holding.qty : nil %>
+              <%= "≈ " if estimated %><%= book_value ? format_money(book_value) : t(".unknown") %>
             </dd>
           </div>
           <div id="<%= dom_id(@holding, :market_value) %>" class="flex items-center justify-between text-sm">
@@ -212,6 +215,9 @@
             <% end %>
           </div>
         </dl>
+        <% if estimated %>
+          <p class="px-3 pb-2 text-xs text-secondary"><%= t(".estimated_cost_basis_note") %></p>
+        <% end %>
       </div>
     <% end %>
     <% dialog.with_section(title: t(".history"), open: true) do %>

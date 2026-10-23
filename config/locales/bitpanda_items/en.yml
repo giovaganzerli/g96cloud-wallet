@@ -1,0 +1,29 @@
+en:
+  bitpanda_items:
+    title: Bitpanda
+    description: Import your Bitpanda portfolio and transaction history with a read-only API key.
+    read_only_notice: "Create a Public API key in Bitpanda Account Settings → API with only Balances and Transaction permissions. Do not enable trading or Earn write permissions. The first sync reads all history available through the API and creates a Crypto exchange account valued in EUR. Unsupported operations or missing historical prices stop the sync rather than importing estimated values."
+    name: Connection name
+    api_key: API key
+    keep_key: Leave blank to keep the existing key
+    create_connection: Connect Bitpanda
+    save_connection: Save and synchronize
+    back: Back to accounts
+    manage: Manage connection
+    status: Status
+    good: Connected
+    requires_update: Check API key and read permissions
+    syncing: Synchronizing…
+    deleting: Deletion in progress
+    sync: Synchronize
+    sync_queued: Bitpanda synchronization queued.
+    disconnect: Disconnect
+    disconnected: Bitpanda disconnected. Imported accounts and history are retained.
+    corrections_require_review: "Bitpanda reclaim/refund corrections were imported as non-trading movements with unknown cost basis. Review them against your Bitpanda statement before relying on gain/loss or tax reports."
+    activity_names:
+      reclaim: Reclaim (review required)
+      refund: Refund (review required)
+  settings:
+    providers:
+      taglines:
+        bitpanda: Import Bitpanda assets, balances and operation history using a read-only API key.

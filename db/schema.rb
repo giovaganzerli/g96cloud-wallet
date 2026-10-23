@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_21_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_23_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -315,6 +315,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_120000) do
     t.datetime "updated_at", null: false
     t.index ["family_id"], name: "index_binance_items_on_family_id"
     t.index ["status"], name: "index_binance_items_on_status"
+  end
+
+  create_table "bitpanda_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "account_id", null: false
+    t.uuid "bitpanda_item_id", null: false
+    t.datetime "created_at", null: false
+    t.string "currency", default: "EUR", null: false
+    t.string "name", null: false
+    t.text "raw_payload"
+    t.datetime "updated_at", null: false
+    t.index ["bitpanda_item_id", "account_id"], name: "index_bitpanda_accounts_on_bitpanda_item_id_and_account_id", unique: true
+    t.index ["bitpanda_item_id"], name: "index_bitpanda_accounts_on_bitpanda_item_id"
+  end
+
+  create_table "bitpanda_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.text "api_key", null: false
+    t.datetime "created_at", null: false
+    t.uuid "family_id", null: false
+    t.string "name", null: false
+    t.boolean "scheduled_for_deletion", default: false, null: false
+    t.string "status", default: "good", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_bitpanda_items_on_family_id"
   end
 
   create_table "brex_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -715,6 +738,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_120000) do
     t.jsonb "locked_attributes", default: {}
     t.string "name", null: false
     t.text "notes"
+    t.datetime "occurred_at"
     t.uuid "parent_entry_id"
     t.string "plaid_id"
     t.datetime "reconciled_at"
@@ -726,6 +750,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_120000) do
     t.index ["account_id", "date", "entryable_id"], name: "index_entries_on_investment_totals_lookup", where: "(((entryable_type)::text = 'Trade'::text) AND (excluded = false))"
     t.index ["account_id", "date"], name: "index_entries_on_account_id_and_date"
     t.index ["account_id", "idempotency_key"], name: "index_entries_on_account_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
+    t.index ["account_id", "occurred_at"], name: "index_entries_on_account_id_and_occurred_at"
     t.index ["account_id", "reconciled_at"], name: "index_entries_on_account_and_reconciled_at", where: "(reconciled_at IS NOT NULL)"
     t.index ["account_id", "source", "external_id"], name: "index_entries_on_account_source_and_external_id", unique: true, where: "((external_id IS NOT NULL) AND (source IS NOT NULL))"
     t.index ["account_id"], name: "index_entries_on_account_id"
@@ -1183,7 +1208,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_120000) do
     t.string "currency", null: false
     t.date "date", null: false
     t.string "external_id"
-    t.decimal "price", precision: 19, scale: 4, null: false
+    t.decimal "price", precision: 34, scale: 18, null: false
     t.uuid "provider_security_id"
     t.decimal "qty", precision: 34, scale: 18, null: false
     t.uuid "security_id", null: false
@@ -2347,7 +2372,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_120000) do
     t.datetime "created_at", null: false
     t.string "currency", default: "USD", null: false
     t.date "date", null: false
-    t.decimal "price", precision: 19, scale: 4, null: false
+    t.decimal "price", precision: 34, scale: 18, null: false
     t.boolean "provisional", default: false, null: false
     t.uuid "security_id"
     t.datetime "updated_at", null: false
@@ -2705,7 +2730,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_120000) do
     t.decimal "fee", precision: 19, scale: 4, default: "0.0", null: false
     t.string "investment_activity_label"
     t.jsonb "locked_attributes", default: {}
-    t.decimal "price", precision: 19, scale: 10
+    t.decimal "price", precision: 34, scale: 18
     t.decimal "qty", precision: 34, scale: 18
     t.uuid "security_id", null: false
     t.datetime "updated_at", null: false
@@ -2963,6 +2988,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_120000) do
   add_foreign_key "balances", "accounts", on_delete: :cascade
   add_foreign_key "binance_accounts", "binance_items"
   add_foreign_key "binance_items", "families"
+  add_foreign_key "bitpanda_accounts", "bitpanda_items"
+  add_foreign_key "bitpanda_items", "families"
   add_foreign_key "brex_accounts", "brex_items"
   add_foreign_key "brex_items", "families"
   add_foreign_key "budget_categories", "budgets", on_delete: :cascade

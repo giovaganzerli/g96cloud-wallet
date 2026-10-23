@@ -277,6 +277,27 @@ class Holding::ReverseCalculatorTest < ActiveSupport::TestCase
     assert_in_delta 150.0, cost_basis_for(calc, security, Date.current).to_f, 1e-6
   end
 
+  test "cost_basis_for uses a deposit-day estimate for an inbound transfer" do
+    security = Security.create!(ticker: "TST", name: "Test")
+    buy_date      = 12.days.ago.to_date
+    transfer_date = 9.days.ago.to_date
+
+    create_trade(security, account: @account, qty: 10, price: 100, date: buy_date)
+    transfer_in = create_trade(security, account: @account, qty: 5, price: 0, date: transfer_date)
+    transfer_in.entryable.update!(
+      investment_activity_label: Trade::TRANSFER_LABEL,
+      extra: { "cost_basis" => { "estimated_price" => "200", "estimated_currency" => "USD" } }
+    )
+
+    snapshot = OpenStruct.new(to_h: { security.id => 15 })
+    calc = Holding::ReverseCalculator.new(@account, portfolio_snapshot: snapshot)
+    calc.send(:precompute_cost_basis)
+
+    expected = (BigDecimal("10") * 100 + BigDecimal("5") * 200) / 15
+    assert_equal expected, cost_basis_for(calc, security, transfer_date)
+    assert_equal expected, cost_basis_for(calc, security, Date.current)
+  end
+
   test "cost_basis_for clears the unknown state once a transferred-in position is fully closed" do
     security = Security.create!(ticker: "TST", name: "Test")
     buy_date      = 12.days.ago.to_date

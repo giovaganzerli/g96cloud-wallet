@@ -1,0 +1,6 @@
+<% content_for :page_title, t("bitpanda_items.title") %>
+<div class="space-y-4">
+  <%= render DS::Link.new(text: t("bitpanda_items.back"), href: accounts_path, icon: "arrow-left") %>
+  <%= render "bitpanda_items/form", bitpanda_item: @bitpanda_item %>
+  <%= render "bitpanda_items/bitpanda_item", bitpanda_item: @bitpanda_item %>
+</div>

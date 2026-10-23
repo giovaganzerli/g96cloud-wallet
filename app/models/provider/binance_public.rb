@@ -188,6 +188,38 @@ class Provider::BinancePublic < Provider
     end
   end
 
+  IntradayPrice = Data.define(:price, :currency, :requested_at, :quoted_at, :source)
+
+  # The opening quote of the requested UTC minute, never a current-price or
+  # daily-close substitution. EUR pairs can have shorter histories than USD.
+  def fetch_security_price_at(symbol:, timestamp:)
+    with_provider_response do
+      parsed = parse_ticker(symbol)
+      unless parsed && parsed[:binance_pair] && parsed[:display_currency] == "EUR"
+        raise InvalidSecurityPriceError, "An EUR crypto pair is required"
+      end
+      requested_at = timestamp.utc
+      minute = requested_at.change(sec: 0)
+      key = "binance_public:minute:#{parsed[:binance_pair]}:#{minute.to_i}"
+      result = Rails.cache.fetch(key, expires_in: 1.day) do
+        throttle_request
+        response = client.get("#{base_url}/api/v3/klines") do |request|
+          request.params.update(symbol: parsed[:binance_pair], interval: "1m",
+            startTime: minute.to_i * 1000, endTime: minute.to_i * 1000 + 59_999, limit: 1)
+        end
+        rows = JSON.parse(response.body)
+        row = rows.is_a?(Array) && rows.one? ? rows.first : nil
+        value = row.is_a?(Array) ? BigDecimal(row[1].to_s, exception: false) : nil
+        unless row && row[0] == minute.to_i * 1000 && value&.finite? && value.positive?
+          raise InvalidSecurityPriceError, "No historical EUR quote for the requested minute"
+        end
+        { "price" => value.to_s("F"), "quoted_at" => minute.iso8601 }
+      end
+      IntradayPrice.new(price: BigDecimal(result.fetch("price")), currency: "EUR",
+        requested_at: requested_at, quoted_at: Time.iso8601(result.fetch("quoted_at")), source: "binance_public_1m_open")
+    end
+  end
+
   def fetch_security_prices(symbol:, exchange_operating_mic:, start_date:, end_date:)
     with_provider_response do
       parsed = parse_ticker(symbol)

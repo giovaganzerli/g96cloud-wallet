@@ -1,0 +1,15 @@
+<%# locals: (bitpanda_items: nil) %>
+<% items = local_assigns[:bitpanda_items] || @bitpanda_items || [] %>
+<div class="space-y-4">
+  <%= render DS::Alert.new(message: t("bitpanda_items.read_only_notice")) %>
+  <%= render DS::Link.new(text: t("bitpanda_items.create_connection"), href: new_bitpanda_item_path, frame: :modal, icon: "plus") %>
+  <%= render DS::Table.new(rows: items, label: t("bitpanda_items.title")) do |table| %>
+    <% table.with_column(t("bitpanda_items.name")) do |item| %>
+      <div class="flex items-center gap-2">
+        <%= render ProviderLogo.new(provider_key: :bitpanda) %>
+        <%= render DS::Link.new(text: item.name, href: bitpanda_item_path(item), frame: "_top") %>
+      </div>
+    <% end %>
+    <% table.with_column(t("bitpanda_items.status")) { |item| t("bitpanda_items.#{item.status}") } %>
+  <% end %>
+</div>

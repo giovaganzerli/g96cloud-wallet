@@ -113,19 +113,26 @@ class Holding::ReverseCalculator
         positions[security_id] += trade.qty
 
         if trade.internal_movement?
-          # Inbound transfers make the basis unknown from that date on; outbound
-          # transfers only remove units, so relieve them at the running average.
+          # Inbound transfers make the basis unknown from that date on, unless the
+          # importer recorded an exact-date market quote for cost-basis purposes.
+          # Outbound transfers only remove units, so relieve them at the running
+          # average.
           if trade.qty.positive?
-            open_unknown_start[security_id] ||= trade_entry.date
+            if trade.estimated_cost_basis?
+              trackers[security_id].apply(cost_basis_price(trade), trade.qty)
+              @cost_basis_snapshots[security_id] << [ trade_entry.date, trackers[security_id].average_cost ]
+            else
+              open_unknown_start[security_id] ||= trade_entry.date
+            end
           else
-            trackers[security_id].apply(converted_trade_price(trade), trade.qty)
+            trackers[security_id].apply(cost_basis_price(trade), trade.qty)
             @cost_basis_snapshots[security_id] << [ trade_entry.date, trackers[security_id].average_cost ]
           end
         else
           tracker = trackers[security_id]
           # Buys raise the basis; sells relieve quantity at the running average, and a
           # full liquidation resets it so a later repurchase starts from a clean basis.
-          tracker.apply(converted_trade_price(trade), trade.qty)
+          tracker.apply(cost_basis_price(trade), trade.qty)
 
           # Record the basis after each trade — including nil once a position is fully
           # closed — so cost_basis_for returns nil for the sold-out span instead of a

@@ -1,0 +1,7 @@
+<%# locals: (row:) %>
+<%= styled_form_with url: "#", scope: :crypto_movement, method: :get, class: "space-y-2" do |form| %>
+  <% crypto_overview_fields(row).each do |key, value| %>
+    <%= form.text_field key, label: t("crypto_ledger.#{key}"), value: value, readonly: true,
+          class: "form-field__input privacy-sensitive" %>
+  <% end %>
+<% end %>

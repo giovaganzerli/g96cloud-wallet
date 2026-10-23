@@ -1,0 +1,58 @@
+it:
+  crypto_ledger:
+    title: Movimenti crypto
+    new: Aggiungi movimento crypto
+    description: Descrizione
+    occurred_at: Data e ora
+    time_zone: Fuso orario
+    action: Azione
+    symbol: Asset / valuta
+    quantity: Quantità nella valuta
+    value_eur: Valore in EUR
+    unit_price_eur: Prezzo unitario in EUR
+    price_source: Fonte del prezzo
+    fees: Commissioni
+    fee_eur: Commissioni pagate in EUR
+    funded_from_wallet: Pagamento/incasso EUR e commissioni usano il saldo EUR di questo portafoglio (disattiva per fondi esterni)
+    balance_after: Saldo dopo il movimento
+    manual_balance_after: Saldo noto nella valuta dopo il movimento (facoltativo)
+    counter_symbol: Asset ricevuto nello scambio
+    counter_quantity: Quantità ricevuta
+    save: Salva movimento
+    saved: Movimento crypto salvato.
+    not_provided: Non fornito
+    time_unavailable: Orario non registrato
+    unspecified_unit: Unità non specificata
+    source_notice: "Quantità, commissioni e saldi sono distinti dai flussi di cassa. Vengono mostrati i valori Bitpanda disponibili; i campi mancanti nell'API non sono sostituiti con zero. Se l'API non fornisce una descrizione testuale, viene indicata l'azione e l'asset. Le quotazioni di mercato sono distinte dai prezzi eseguiti."
+    manual_notice: "Inserisci quantità positive: il segno dipende dall'azione. Prezzi o valori EUR inseriti manualmente hanno precedenza. I campi vuoti possono usare una quotazione Binance gratuita al minuto selezionato (prezzo di apertura, non prezzo eseguito). Se la coppia o lo storico non è disponibile, inserisci il valore manualmente. Per uno scambio indica l'asset ceduto e quello ricevuto."
+    opening_unknown: "Un valore iniziale non nullo non specifica le quantità nelle singole valute. Inserisci un saldo noto dopo un movimento per ancorare il saldo progressivo di quella valuta."
+    manual_only: Questi movimenti possono essere aggiunti solo ai conti crypto manuali.
+    provider_required: Abilita Binance Public nelle impostazioni dei dati di mercato, oppure inserisci il prezzo EUR manualmente.
+    quote_unavailable: Nessuna quotazione EUR disponibile per questo asset e minuto. Inserisci manualmente il prezzo eseguito o il valore EUR.
+    invalid_time: Seleziona data, ora e fuso orario validi, non nel futuro.
+    quote_loading: Ricerca della quotazione storica in EUR…
+    quoted_at: "Quotazione Binance di apertura del minuto:"
+    lookup: Compila i valori vuoti dalla quotazione storica
+    inconsistent_value: La quantità moltiplicata per il prezzo unitario deve corrispondere al valore EUR.
+    edited_counterpart: Una contropartita fiat modificata manualmente deve essere riconciliata prima di sostituirla con l'operazione Bitpanda raggruppata.
+    fee_kinds:
+      movement: movimento
+      trading: trading
+    sources:
+      bitpanda: Eseguito / saldo Bitpanda
+      bitpanda_fx: Bitpanda + cambio alla data
+      market_daily: Quotazione giornaliera storica di mercato
+      manual: Inserito manualmente
+      manual_exchange_ratio: Derivato dalle quantità dello scambio inserite
+      binance_public_1m_open: Quotazione Binance di apertura del minuto
+      eur: EUR
+      not_provided: Non fornito dall'API
+    actions:
+      buy: Acquisto
+      sell: Vendita
+      deposit: Deposito
+      withdrawal: Prelievo
+      swap: Scambio
+      reward: Ricompensa
+      correction: Rettifica
+      other: Altro movimento

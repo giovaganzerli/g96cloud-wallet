@@ -35,6 +35,7 @@ class AccountsController < ApplicationController
     @ibkr_items = visible_provider_items(family.ibkr_items.ordered.with_attached_logo.includes(:ibkr_accounts))
     @indexa_capital_items = visible_provider_items(family.indexa_capital_items.ordered.with_attached_logo.includes(:indexa_capital_accounts))
     @scalable_capital_items = visible_provider_items(family.scalable_capital_items.ordered.includes(:accounts))
+    @bitpanda_items = visible_provider_items(family.bitpanda_items.ordered.includes(:accounts))
     @sophtron_items = visible_provider_items(family.sophtron_items.ordered.with_attached_logo.includes(:sophtron_accounts))
     @onchain_wallet_items = visible_provider_items(
       family.onchain_wallet_items.ordered.includes(:accounts, onchain_wallet_accounts: { account_provider: :account })
@@ -91,7 +92,12 @@ class AccountsController < ApplicationController
     @as_of = Date.current
     @accessible_account_ids = Current.user.accessible_accounts.pluck(:id).to_set
     @q = params.fetch(:q, {}).permit(:search, :uncategorized, status: [])
-    entries = @account.entries.excluding_split_parents.search(@q).reverse_chronological.includes(:entryable)
+    entries = @account.entries.excluding_split_parents.search(@q).includes(:entryable)
+    entries = if @account.crypto?
+      entries.where(excluded: false).order(Arel.sql("COALESCE(entries.occurred_at, entries.date::timestamp) DESC"), created_at: :desc, id: :desc)
+    else
+      entries.reverse_chronological
+    end
     if statement_tab_active?
       build_statement_tab_data
       return render_statement_tab_frame if statement_tab_frame_request?
@@ -442,6 +448,7 @@ class AccountsController < ApplicationController
         @ibkr_items,
         @indexa_capital_items,
         @scalable_capital_items,
+        @bitpanda_items,
         @sophtron_items,
         @binance_items,
         @kraken_items,
