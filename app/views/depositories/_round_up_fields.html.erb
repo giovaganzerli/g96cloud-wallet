@@ -1,0 +1,42 @@
+<%# locals: (form:, account:) %>
+
+<% setting = account.round_up_setting || account.build_round_up_setting %>
+<% destination_accounts = Account.writable_by(Current.user)
+                                .where(family: Current.family, accountable_type: "Depository")
+                                .active
+                                .where.not(id: account.id)
+                                .alphabetically %>
+
+<%= form.fields_for :round_up_setting, setting do |round_up_form| %>
+  <div class="space-y-2 border-t border-tertiary pt-3" data-controller="round-up-settings">
+    <div class="flex items-start justify-between gap-3">
+      <div class="space-y-1">
+        <p class="text-sm text-primary font-medium"><%= t(".label") %></p>
+        <p class="text-sm text-secondary"><%= t(".hint") %></p>
+      </div>
+
+      <%= round_up_form.toggle :enabled,
+            data: {
+              round_up_settings_target: "toggle",
+              action: "change->round-up-settings#toggle"
+            } %>
+    </div>
+
+    <div class="space-y-2 <%= "hidden" unless setting.enabled? %>" data-round-up-settings-target="details">
+      <%= round_up_form.collection_select :destination_account_id,
+            destination_accounts,
+            :id,
+            :name,
+            {
+              label: t(".destination_label"),
+              prompt: t(".destination_prompt"),
+              selected: setting.destination_account_id,
+              variant: :logo
+            } %>
+
+      <%= round_up_form.select :multiplier,
+            Account::RoundUpSetting::MULTIPLIERS.map { |multiplier| [ "x#{multiplier}", multiplier ] },
+            { label: t(".multiplier_label") } %>
+    </div>
+  </div>
+<% end %>

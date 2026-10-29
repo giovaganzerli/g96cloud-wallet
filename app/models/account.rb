@@ -28,6 +28,18 @@ class Account < ApplicationRecord
   has_many :goal_accounts, dependent: :destroy
   has_many :goals, through: :goal_accounts
   has_many :goal_pledges, dependent: :destroy
+
+  has_one :round_up_setting,
+          class_name: "Account::RoundUpSetting",
+          dependent: :destroy,
+          inverse_of: :account
+  has_one :round_up_destination,
+          through: :round_up_setting,
+          source: :destination_account
+  accepts_nested_attributes_for :round_up_setting,
+                                reject_if: ->(attributes) {
+                                  attributes["id"].blank? && !ActiveModel::Type::Boolean.new.cast(attributes["enabled"])
+                                }
   # Inverse for recurring transfers where this account is the destination.
   # Account#recurring_transactions only matches account_id; without this
   # association, destroying the destination account would hit the FK
@@ -705,6 +717,27 @@ class Account < ApplicationRecord
   def permission_for(user)
     return :owner if owned_by?(user)
     account_shares.find_by(user: user)&.permission&.to_sym
+  end
+
+  # "Spare change" (Spiccioli) is only meaningful for cash-like accounts.
+  # The setting itself guards its own validations; this answers the question
+  # the forms ask: can a new expense on this account also create a transfer?
+  def round_ups_available?
+    return false unless depository?
+
+    setting = round_up_setting
+    return false unless setting&.persisted? && setting.enabled? && setting.destination_account.present?
+    return false if setting.destination_account_id == id
+
+    setting.destination_account.active?
+  end
+
+  # Round-ups move money, so the person creating the expense needs write
+  # access to the destination as well as the source account.
+  def round_ups_available_for?(user)
+    return false unless round_ups_available?
+
+    round_up_setting.destination_account.permission_for(user).in?([ :owner, :full_control ])
   end
 
   def share_with!(user, permission: "read_only", include_in_finances: true)

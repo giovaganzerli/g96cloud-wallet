@@ -1,14 +1,36 @@
-<%# locals: (entry:, account_currencies:, manual_accounts:, categories:, merchants:, tags:) %>
+<%# locals: (entry:, account_currencies:, manual_accounts:, categories:, merchants:, tags:, nature: "outflow", round_up_accounts: {}, quick: false) %>
 
-<%= styled_form_with model: entry, url: transactions_path, class: "space-y-4", data: { controller: "transaction-form", action: "turbo:before-cache@document->transaction-form#refreshIdempotencyKey pageshow@window->transaction-form#refreshIdempotencyKeyIfPersisted", transaction_form_exchange_rate_url_value: exchange_rate_path, transaction_form_account_currencies_value: account_currencies.to_json } do |f| %>
+<%= styled_form_with model: entry,
+      url: transactions_path,
+      class: "space-y-4",
+      data: {
+        controller: "transaction-form",
+        action: "turbo:before-cache@document->transaction-form#refreshIdempotencyKey pageshow@window->transaction-form#refreshIdempotencyKeyIfPersisted",
+        transaction_form_exchange_rate_url_value: exchange_rate_path,
+        transaction_form_account_currencies_value: account_currencies.to_json,
+        transaction_form_round_up_accounts_value: round_up_accounts.to_json,
+        transaction_form_round_up_preview_template_value: t(
+          ".round_up_preview",
+          amount: "%{amount}",
+          destination: "%{destination}",
+          multiplier: "%{multiplier}"
+        )
+      } do |f| %>
   <% if entry.errors.any? %>
     <%= render "shared/form_errors", model: entry %>
   <% end %>
 
-  <section data-controller="transaction-type-tabs" data-action="transaction-type-tabs:change->transaction-form#onNatureChange">
-    <%= render "shared/transaction_type_tabs", active_tab: params[:nature] == "inflow" ? "income" : "expense", account_id: params[:account_id] %>
+  <% if quick %>
+    <%= hidden_field_tag :quick_new, "1" %>
+  <% end %>
 
-    <%= f.hidden_field :nature, value: params[:nature] || "outflow", data: { "transaction-type-tabs-target": "natureField", "transaction-form-target": "natureField" } %>
+  <section data-controller="transaction-type-tabs" data-action="transaction-type-tabs:change->transaction-form#onNatureChange">
+    <%= render "shared/transaction_type_tabs",
+               active_tab: nature == "inflow" ? "income" : "expense",
+               account_id: params[:account_id],
+               quick: quick %>
+
+    <%= f.hidden_field :nature, value: nature, data: { "transaction-type-tabs-target": "natureField", "transaction-form-target": "natureField" } %>
     <%= f.hidden_field :entryable_type, value: "Transaction" %>
     <%# Anti-double-submit token: a fresh UUID per page load, echoed back on
         submit. TransactionsController#create uses it to recognize a repeat
@@ -23,15 +45,7 @@
     <%= hidden_field_tag "entry[idempotency_key]", new_transaction_idempotency_key, data: { "transaction-form-target": "idempotencyKey" } %>
   </section>
 
-  <section class="space-y-2">
-    <%= f.text_field :name, label: t(".description"), placeholder: t(".description_placeholder"), required: true %>
-
-    <% if @entry.account_id %>
-      <%= f.hidden_field :account_id, data: { transaction_form_target: "account" } %>
-    <% else %>
-      <%= f.collection_select :account_id, manual_accounts, :id, :name, { prompt: t(".account_prompt"), label: t(".account"), selected: Current.user.default_account_for_transactions&.id, variant: :logo, searchable: true }, required: true, class: "form-field__input text-ellipsis", data: { transaction_form_target: "account", action: "change->transaction-form#checkCurrencyDifference" } %>
-    <% end %>
-
+  <section class="space-y-3">
     <%= f.money_field :amount,
       label: t(".amount"),
       required: true,
@@ -40,15 +54,15 @@
       currency_data: { transaction_form_target: "currency", action: "change->transaction-form#onCurrencyChange" } %>
 
     <% is_cashback_enabled = params.dig(:entry, :cashback_enabled) == "1" %>
-    <% is_outflow = (params[:nature] || "outflow") == "outflow" %>
-    <div class="space-y-2 <%= 'hidden' unless is_outflow %>" data-transaction-form-target="cashbackSection">
+    <% is_outflow = nature == "outflow" %>
+    <div class="space-y-2 <%= "hidden" unless is_outflow %>" data-transaction-form-target="cashbackSection">
       <div class="flex items-center justify-between py-1">
         <%= label_tag "entry_cashback_enabled", t(".cashback_label"), class: "text-sm font-medium text-secondary cursor-pointer" %>
         <%= render DS::Toggle.new(
               id: "entry_cashback_enabled",
               name: "entry[cashback_enabled]",
               checked: is_cashback_enabled,
-              disabled: @entry.amount.blank? || @entry.amount.to_d <= 0,
+              disabled: entry.amount.blank? || entry.amount.to_d <= 0,
               data: {
                 transaction_form_target: "cashbackToggle",
                 action: "change->transaction-form#toggleCashback"
@@ -56,13 +70,14 @@
             ) %>
       </div>
 
-      <div class="<%= 'hidden' unless is_cashback_enabled %> space-y-1.5" data-transaction-form-target="cashbackDetails">
+      <div class="<%= "hidden" unless is_cashback_enabled %> space-y-1.5" data-transaction-form-target="cashbackDetails">
         <%= label_tag "entry_cashback_value", t(".cashback_value_label"), class: "form-field__label" %>
         <div class="flex items-center gap-2">
           <div class="relative flex-1">
             <%= number_field_tag "entry[cashback_value]",
                   params.dig(:entry, :cashback_value),
-                  id: "entry_cashback_value",
+                   id: "entry_cashback_value",
+                  autocomplete: "off",
                   step: "any",
                   min: "0.01",
                   placeholder: t(".cashback_placeholder"),
@@ -101,68 +116,72 @@
         <p class="text-xs text-secondary hidden" data-transaction-form-target="cashbackPreview"></p>
       </div>
     </div>
+  </section>
 
-    <%= f.fields_for :entryable do |ef| %>
-      <%= render DS::CategorySelect.new(
+  <%= f.fields_for :entryable do |ef| %>
+    <%= render DS::CategorySelect.new(
       form: ef,
       categories: categories,
       selected_id: ef.object.category_id,
       blank_label: t(".category_prompt")
     ) %>
-    <% end %>
+  <% end %>
 
-    <%= f.date_field :date,
-      label: t(".date"),
-      required: true,
-      min: Entry.min_supported_date,
-      max: Date.current,
-      value: f.object.date || Date.current,
-      data: { transaction_form_target: "date", action: "change->transaction-form#checkCurrencyDifference" } %>
+  <% if entry.account_id %>
+    <%= f.hidden_field :account_id, data: { transaction_form_target: "account" } %>
+  <% else %>
+    <%= f.collection_select :account_id, manual_accounts, :id, :name, { prompt: t(".account_prompt"), label: t(".account"), selected: Current.user.default_account_for_transactions&.id, variant: :logo, searchable: true }, required: true, class: "form-field__input text-ellipsis", data: { transaction_form_target: "account", action: "change->transaction-form#onAccountChange" } %>
+  <% end %>
 
-    <% convert_input = capture do %>
-      <%= f.fields_for :entryable do |ef| %>
-        <%= ef.number_field :exchange_rate,
-          label: t("shared.exchange_rate_tabs.exchange_rate"),
-          min: "0.00000000000001",
-          step: "0.00000000000001",
-          placeholder: "1.0",
-          class: "form-field__input",
-          data: {
-            transaction_form_target: "exchangeRateField",
-            action: "input->transaction-form#onConvertExchangeRateChange"
-          } %>
-      <% end %>
-    <% end %>
+  <% round_up_account = nature == "outflow" && entry.account_id.present? ? round_up_accounts[entry.account_id.to_s] : nil %>
+  <% round_up_param = params.dig(:entry, :round_up_enabled) %>
+  <% round_up_checked = round_up_param.nil? ? true : round_up_param.to_s.in?(%w[1 true on]) %>
+  <section class="<%= "hidden" unless round_up_account %>" data-transaction-form-target="roundUpSection">
+    <div class="flex items-center justify-between gap-3 rounded-lg bg-container-inset px-3 py-2">
+      <div class="min-w-0 space-y-0.5">
+        <p class="text-sm font-medium text-primary"><%= t(".round_up_label") %></p>
+        <p class="text-xs text-secondary" data-transaction-form-target="roundUpPreview">
+          <% if round_up_account %>
+            <%= t(".round_up_hint", destination: round_up_account["destination"], multiplier: "x#{round_up_account["multiplier"]}") %>
+          <% end %>
+        </p>
+      </div>
 
-    <% destination_input = capture do %>
-      <%= number_field_tag :destination_amount,
-        nil,
-        id: "transaction_form_destination_amount",
-        class: "form-field__input",
-        autocomplete: "off",
-        min: "0",
-        step: "0.00000001",
-        placeholder: "92",
-        data: {
-          transaction_form_target: "destinationAmount",
-          action: "input->transaction-form#onCalculateRateDestinationAmountChange"
-        } %>
-    <% end %>
-
-    <%= render "shared/exchange_rate_tabs",
-      controller_id: "transaction-form",
-      controller_key: "transaction_form",
-      help_text: t("shared.exchange_rate_tabs.exchange_rate_help"),
-      convert_tab_label: t("shared.exchange_rate_tabs.convert_tab"),
-      calculate_rate_tab_label: t("shared.exchange_rate_tabs.calculate_rate_tab"),
-      destination_amount_label: t("shared.exchange_rate_tabs.destination_amount"),
-      exchange_rate_label: t("shared.exchange_rate_tabs.exchange_rate"),
-      convert_input: convert_input,
-      destination_input: destination_input %>
+      <%= render DS::Toggle.new(
+            id: "entry_round_up_enabled",
+            name: "entry[round_up_enabled]",
+            checked: round_up_checked,
+            data: {
+              transaction_form_target: "roundUpToggle",
+              action: "change->transaction-form#toggleRoundUp"
+            }
+          ) %>
+    </div>
   </section>
+
+  <%= f.date_field :date,
+    label: t(".date"),
+    required: true,
+    min: Entry.min_supported_date,
+    max: Date.current,
+    value: f.object.date || Date.current,
+    data: { transaction_form_target: "date", action: "change->transaction-form#checkCurrencyDifference" } %>
+
+  <%= f.fields_for :entryable do |ef| %>
+    <%= render DS::TagSelect.new(
+      form: ef,
+      tags: tags,
+      selected_ids: ef.object.tag_ids
+    ) %>
+  <% end %>
 
   <%= render DS::Disclosure.new(title: t(".details")) do %>
     <section class="space-y-2">
+      <%= f.text_field :name,
+                       label: t(".description_optional"),
+                       placeholder: t(".description_placeholder"),
+                       required: false %>
+
       <%= f.fields_for :entryable do |ef| %>
         <%= render DS::MerchantSelect.new(
               form: ef,
@@ -172,21 +191,58 @@
               include_blank: t(".none"),
               label: t(".merchant_label")
             ) %>
-        <%= render DS::TagSelect.new(
-              form: ef,
-              tags: tags,
-              selected_ids: ef.object.tag_ids
-            ) %>
       <% end %>
+
       <%= f.text_area :notes,
                       label: t(".note_label"),
                       placeholder: t(".note_placeholder"),
-                      rows: 5,
+                      rows: 4,
                       "data-auto-submit-form-target": "auto" %>
+
+      <% convert_input = capture do %>
+        <%= f.fields_for :entryable do |ef| %>
+          <%= ef.number_field :exchange_rate,
+            label: t("shared.exchange_rate_tabs.exchange_rate"),
+            min: "0.00000000000001",
+            step: "0.00000000000001",
+            placeholder: "1.0",
+            class: "form-field__input",
+            data: {
+              transaction_form_target: "exchangeRateField",
+              action: "input->transaction-form#onConvertExchangeRateChange"
+            } %>
+        <% end %>
+      <% end %>
+
+      <% destination_input = capture do %>
+        <%= number_field_tag :destination_amount,
+          nil,
+          id: "transaction_form_destination_amount",
+          class: "form-field__input",
+          autocomplete: "off",
+          min: "0",
+          step: "0.00000001",
+          placeholder: "92",
+          data: {
+            transaction_form_target: "destinationAmount",
+            action: "input->transaction-form#onCalculateRateDestinationAmountChange"
+          } %>
+      <% end %>
+
+      <%= render "shared/exchange_rate_tabs",
+        controller_id: "transaction-form",
+        controller_key: "transaction_form",
+        help_text: t("shared.exchange_rate_tabs.exchange_rate_help"),
+        convert_tab_label: t("shared.exchange_rate_tabs.convert_tab"),
+        calculate_rate_tab_label: t("shared.exchange_rate_tabs.calculate_rate_tab"),
+        destination_amount_label: t("shared.exchange_rate_tabs.destination_amount"),
+        exchange_rate_label: t("shared.exchange_rate_tabs.exchange_rate"),
+        convert_input: convert_input,
+        destination_input: destination_input %>
     </section>
   <% end %>
 
-  <section>
+  <section class="sticky bottom-0 z-10 bg-container pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
     <%= f.submit t(".submit") %>
   </section>
 <% end %>

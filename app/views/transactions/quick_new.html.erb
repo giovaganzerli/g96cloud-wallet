@@ -1,0 +1,28 @@
+<% content_for :title, t(".title") %>
+
+<div class="mx-auto w-full max-w-xl">
+  <header class="flex flex-col items-center gap-2 py-6">
+    <%# Centered brand mark only — deliberately not a link, so a stray tap
+        while entering an amount cannot navigate away and lose the form. %>
+    <%= image_tag "/branding/wallet-8ad5b8fbb493-512.png", alt: "", class: "h-12 w-12" %>
+
+    <p class="text-sm text-secondary">
+      <span class="font-medium text-primary"><%= product_name %></span>
+      <span aria-hidden="true">/</span>
+      <%= t(".heading") %>
+    </p>
+  </header>
+
+  <%= render "transactions/quick_form",
+             nature: @quick_nature,
+             entry: @entry,
+             account_currencies: @account_currencies,
+             manual_accounts: @manual_accounts,
+             categories: @categories,
+             merchants: @merchants,
+             tags: @tags,
+             round_up_accounts: @round_up_accounts,
+             transfer: @transfer,
+             accounts: @accounts,
+             from_account_id: @from_account_id %>
+</div>

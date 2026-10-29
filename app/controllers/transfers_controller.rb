@@ -1,5 +1,6 @@
 class TransfersController < ApplicationController
   include StreamExtensions
+  include QuickTransactionForm
 
   before_action :set_transfer, only: %i[show destroy update update_tags mark_as_recurring]
   before_action :set_accounts, only: %i[new create]
@@ -51,39 +52,45 @@ class TransfersController < ApplicationController
 
     if @transfer.persisted?
       success_message = "Transfer created"
-      respond_to do |format|
-        format.html { redirect_back_or_to transactions_path, notice: success_message }
-        format.turbo_stream { stream_redirect_back_or_to transactions_path, notice: success_message }
+
+      if quick_form_request?
+        respond_to do |format|
+          format.html { redirect_to quick_new_transaction_path(nature: "transfer"), notice: success_message }
+          format.turbo_stream do
+            flash[:notice] = success_message
+            # Reset in place: the quick page keeps the transfer tab active and
+            # replaces the frame with a blank form.
+            set_quick_form_options(nature: "transfer", transfer: Transfer.new)
+            render turbo_stream: [
+              quick_form_streams(nature: "transfer"),
+              *flash_notification_stream_items
+            ]
+          end
+        end
+      else
+        respond_to do |format|
+          format.html { redirect_back_or_to transactions_path, notice: success_message }
+          format.turbo_stream { stream_redirect_back_or_to transactions_path, notice: success_message }
+        end
       end
     else
-      @from_account_id = transfer_params[:from_account_id]
-      @tags = Current.family.tags.alphabetically
-      render :new, status: :unprocessable_entity
+      render_transfer_form_error
     end
   rescue Money::ConversionError
     @transfer ||= Transfer.new
     @transfer.tag_ids = transfer_params[:tag_ids]
     @transfer.errors.add(:base, t(".exchange_rate_unavailable"))
-    @from_account_id = transfer_params[:from_account_id]
-    set_accounts
-    @tags = Current.family.tags.alphabetically
-    render :new, status: :unprocessable_entity
+    render_transfer_form_error
   rescue ArgumentError
     @transfer ||= Transfer.new
     @transfer.tag_ids = transfer_params[:tag_ids]
     @transfer.errors.add(:date, t(".date_invalid"))
-    @from_account_id = transfer_params[:from_account_id]
-    set_accounts
-    @tags = Current.family.tags.alphabetically
-    render :new, status: :unprocessable_entity
+    render_transfer_form_error
   rescue Transfer::Creator::StaleIdempotencyKeyError
     @transfer ||= Transfer.new
     @transfer.tag_ids = transfer_params[:tag_ids]
     @transfer.errors.add(:base, t(".stale_form"))
-    @from_account_id = transfer_params[:from_account_id]
-    set_accounts
-    @tags = Current.family.tags.alphabetically
-    render :new, status: :unprocessable_entity
+    render_transfer_form_error
   end
 
   def update
@@ -231,6 +238,17 @@ class TransfersController < ApplicationController
           :account_providers,
           logo_attachment: :blob
         )
+    end
+
+    def render_transfer_form_error
+      @from_account_id = transfer_params[:from_account_id]
+
+      if quick_form_request?
+        render_quick_form_error(nature: "transfer")
+      else
+        @tags = Current.family.tags.alphabetically
+        render :new, status: :unprocessable_entity
+      end
     end
 
     def transfer_update_params

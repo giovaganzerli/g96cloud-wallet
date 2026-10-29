@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_23_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_29_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -29,6 +29,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_23_140000) do
     t.datetime "updated_at", null: false
     t.index ["account_id", "provider_type"], name: "index_account_providers_on_account_and_provider_type", unique: true
     t.index ["provider_type", "provider_id"], name: "index_account_providers_on_provider_type_and_provider_id", unique: true
+  end
+
+  create_table "account_round_up_settings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id", null: false
+    t.datetime "created_at", null: false
+    t.uuid "destination_account_id"
+    t.boolean "enabled", default: false, null: false
+    t.integer "multiplier", default: 1, null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_account_round_up_settings_on_account_id", unique: true
+    t.index ["destination_account_id"], name: "index_account_round_up_settings_on_destination_account_id"
+    t.check_constraint "multiplier IN (1, 2, 3, 4, 5, 10)", name: "account_round_up_settings_multiplier_check"
   end
 
   create_table "account_shares", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -2970,6 +2982,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_23_140000) do
   end
 
   add_foreign_key "account_providers", "accounts", on_delete: :cascade
+  add_foreign_key "account_round_up_settings", "accounts", on_delete: :cascade
+  add_foreign_key "account_round_up_settings", "accounts", column: "destination_account_id", on_delete: :nullify
   add_foreign_key "account_shares", "accounts"
   add_foreign_key "account_shares", "users"
   add_foreign_key "account_statements", "accounts", column: "suggested_account_id", on_delete: :nullify

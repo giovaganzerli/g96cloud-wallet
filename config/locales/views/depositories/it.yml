@@ -6,6 +6,12 @@ it:
     form:
       none: Nessuno
       subtype_prompt: Seleziona tipo di conto
+    round_up_fields:
+      label: Spiccioli
+      hint: Arrotonda ogni spesa di questo conto e sposta la differenza su un conto di risparmio.
+      destination_label: Conto di destinazione
+      destination_prompt: Seleziona un conto di risparmio
+      multiplier_label: Moltiplicatore
     new:
       title: Inserisci il saldo del conto
     subtypes:

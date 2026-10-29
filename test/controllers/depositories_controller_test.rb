@@ -66,6 +66,57 @@ class DepositoriesControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='account[enable_category_matcher]']", 0
   end
 
+  test "update persists spare-change settings through nested attributes" do
+    destination = @user.family.accounts.create!(
+      name: "Savings",
+      balance: 0,
+      currency: "USD",
+      accountable: Depository.new
+    )
+
+    patch depository_path(@account), params: {
+      account: {
+        round_up_setting_attributes: {
+          enabled: "1",
+          destination_account_id: destination.id,
+          multiplier: "3"
+        }
+      }
+    }
+
+    setting = @account.reload.round_up_setting
+
+    assert setting.enabled?
+    assert_equal 3, setting.multiplier
+    assert_equal destination, setting.destination_account
+  end
+
+  test "update can turn spare change off without losing the destination" do
+    destination = @user.family.accounts.create!(
+      name: "Savings",
+      balance: 0,
+      currency: "USD",
+      accountable: Depository.new
+    )
+    @account.create_round_up_setting!(enabled: true, destination_account: destination, multiplier: 2)
+
+    patch depository_path(@account), params: {
+      account: {
+        round_up_setting_attributes: {
+          id: @account.round_up_setting.id,
+          enabled: "0",
+          destination_account_id: destination.id,
+          multiplier: "2"
+        }
+      }
+    }
+
+    setting = @account.reload.round_up_setting
+
+    assert_not setting.enabled?
+    assert_equal destination, setting.destination_account
+  end
+
   # --- member-owned connections (issue #3579) ------------------------------
 
   test "a member sees only member-connectable providers in the method selector" do

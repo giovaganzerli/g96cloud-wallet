@@ -60,6 +60,19 @@ en:
       tag_search_placeholder: Search or create tag
       tags_label: Tags
       transfer: Transfer
+      description_optional: Description (optional)
+      default_expense_name: Expense
+      default_income_name: Income
+      round_up_label: Round up to savings
+      round_up_hint: To %{destination} (%{multiplier})
+      round_up_preview: "Rounds up +%{amount} to %{destination} (%{multiplier})"
+    quick_new:
+      title: New transaction
+      heading: New transaction
+    round_up:
+      outflow_name: "Spare change to %{destination}"
+      inflow_name: "Spare change from %{source}"
+      error: "Could not create the spare-change transfer: %{message}"
     create:
       created: Transaction created
     update:

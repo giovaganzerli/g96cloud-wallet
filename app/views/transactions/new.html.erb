@@ -7,6 +7,8 @@
                manual_accounts: @manual_accounts,
                categories: @categories,
                merchants: @merchants,
-               tags: @tags %>
+               tags: @tags,
+               nature: params[:nature] || "outflow",
+               round_up_accounts: @round_up_accounts %>
   <% end %>
 <% end %>

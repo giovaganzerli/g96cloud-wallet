@@ -559,6 +559,10 @@ Rails.application.routes.draw do
     end
   end
 
+  # Full-screen quick entry. Must be declared before `resources :transactions`
+  # so the literal path is not swallowed by the `/:id` show route.
+  get "transactions/quick-new", to: "transactions#quick_new", as: :quick_new_transaction
+
   resources :transactions, only: %i[index new create show update destroy] do
     resource :split, only: %i[new create edit update destroy]
     resource :transfer_match, only: %i[new create]

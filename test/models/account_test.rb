@@ -944,4 +944,75 @@ class AccountTest < ActiveSupport::TestCase
     accounts(:credit_card).account_shares.find_by!(user: member).update!(permission: "read_write")
     assert_includes Account.annotatable_by(member).pluck(:id), accounts(:credit_card).id, "read_write share"
   end
+
+  test "round_ups_available? requires an enabled setting with an active destination" do
+    savings = @family.accounts.create!(
+      name: "Savings",
+      balance: 0,
+      currency: "USD",
+      accountable: Depository.new
+    )
+
+    assert_not @account.round_ups_available?
+
+    @account.create_round_up_setting!(enabled: false, destination_account: savings)
+    assert_not @account.reload.round_ups_available?
+
+    @account.round_up_setting.update!(enabled: true)
+    assert @account.reload.round_ups_available?
+
+    savings.update!(status: "disabled")
+    assert_not @account.reload.round_ups_available?
+  end
+
+  test "round_ups_available_for? requires write access to the destination" do
+    savings = @family.accounts.create!(
+      name: "Savings",
+      balance: 0,
+      currency: "USD",
+      accountable: Depository.new
+    )
+    @account.create_round_up_setting!(enabled: true, destination_account: savings)
+
+    assert @account.round_ups_available_for?(@admin)
+    assert_not @account.round_ups_available_for?(@member)
+  end
+
+  test "accepts nested spare-change settings and skips a disabled blank row" do
+    savings = @family.accounts.create!(
+      name: "Savings",
+      balance: 0,
+      currency: "USD",
+      accountable: Depository.new
+    )
+
+    # Nothing to persist yet: reject the would-be row instead of storing a
+    # disabled setting the user never asked for.
+    @account.update!(round_up_setting_attributes: { enabled: "0", destination_account_id: "" })
+    assert_nil @account.reload.round_up_setting
+
+    @account.update!(
+      round_up_setting_attributes: {
+        enabled: "1",
+        destination_account_id: savings.id,
+        multiplier: "2"
+      }
+    )
+    setting = @account.reload.round_up_setting
+    assert setting.enabled?
+    assert_equal 2, setting.multiplier
+    assert_equal savings, setting.destination_account
+
+    # Disabling an existing row keeps the destination for the next time.
+    @account.update!(
+      round_up_setting_attributes: {
+        id: setting.id,
+        enabled: "0",
+        destination_account_id: savings.id,
+        multiplier: "2"
+      }
+    )
+    assert_not @account.reload.round_up_setting.enabled?
+    assert_equal savings, @account.round_up_setting.destination_account
+  end
 end

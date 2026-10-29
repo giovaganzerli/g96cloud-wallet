@@ -9,12 +9,15 @@ it:
       nav:
         assistant: Assistente
         budgets: Budget
+        dashboard: Dashboard
         insights: Insight
         plan: Piano
         home: Home
         reports: Rapporti
+        stats: Statistiche
         goals: Obiettivi
         transactions: Transazioni
+      new_transaction: Nuova transazione
     auth:
       existing_account: Hai già un account?
       no_account: Nuovo su %{product_name}?

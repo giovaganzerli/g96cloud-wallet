@@ -157,6 +157,7 @@ module AccountableResource
         :opening_balance_date,
         :institution_name, :institution_domain, :notes, :exclude_from_reports,
         :enable_category_matcher,
+        round_up_setting_attributes: [ :id, :enabled, :destination_account_id, :multiplier ],
         accountable_attributes: self.class.permitted_accountable_attributes
       )
     end

@@ -6,6 +6,12 @@ en:
     form:
       none: None
       subtype_prompt: Select account type
+    round_up_fields:
+      label: Spare change
+      hint: Round up every expense on this account and move the difference to a savings account.
+      destination_label: Destination account
+      destination_prompt: Select a savings account
+      multiplier_label: Multiplier
     new:
       title: Enter account balance
     subtypes:

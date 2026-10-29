@@ -1,0 +1,17 @@
+---
+en:
+  activerecord:
+    models:
+      account/round_up_setting: Spare change
+    attributes:
+      account/round_up_setting:
+        destination_account: Destination account
+        multiplier: Multiplier
+    errors:
+      models:
+        account/round_up_setting:
+          attributes:
+            account:
+              invalid: must be a depository account
+            destination_account:
+              invalid: must be an active depository account in the same family

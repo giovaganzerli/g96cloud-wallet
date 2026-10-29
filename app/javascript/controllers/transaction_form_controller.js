@@ -16,36 +16,54 @@ export default class extends ExchangeRateFormController {
     "cashbackTypeFixed",
     "cashbackTypePercentage",
     "cashbackPreview",
+    "roundUpSection",
+    "roundUpToggle",
+    "roundUpPreview",
   ];
+
+  static values = {
+    ...ExchangeRateFormController.values,
+    roundUpAccounts: Object,
+    roundUpPreviewTemplate: String,
+  };
 
   connect() {
     super.connect?.();
+    this.roundUpAccountId = this.hasAccountTarget ? this.accountTarget.value : null;
     this.updateCashbackAvailability();
+    this.updateRoundUp();
   }
 
   onNatureChange(event) {
     const nature =
       event?.detail?.nature ||
       (this.hasNatureFieldTarget ? this.natureFieldTarget.value : "outflow");
-    if (!this.hasCashbackSectionTarget) {
-      return;
-    }
 
-    if (nature === "outflow") {
-      this.cashbackSectionTarget.classList.remove("hidden");
-      this.updateCashbackAvailability();
-    } else {
-      this.cashbackSectionTarget.classList.add("hidden");
-      if (this.hasCashbackToggleTarget && this.cashbackToggleTarget.checked) {
-        this.cashbackToggleTarget.checked = false;
-        this.toggleCashback();
+    if (this.hasCashbackSectionTarget) {
+      if (nature === "outflow") {
+        this.cashbackSectionTarget.classList.remove("hidden");
+        this.updateCashbackAvailability();
+      } else {
+        this.cashbackSectionTarget.classList.add("hidden");
+        if (this.hasCashbackToggleTarget && this.cashbackToggleTarget.checked) {
+          this.cashbackToggleTarget.checked = false;
+          this.toggleCashback();
+        }
       }
     }
+
+    this.updateRoundUp();
+  }
+
+  onAccountChange() {
+    this.checkCurrencyDifference();
+    this.updateRoundUp(true);
   }
 
   onAmountChange() {
     super.onAmountChange();
     this.updateCashbackAvailability();
+    this.updateRoundUpPreview();
   }
 
   updateCashbackAvailability() {
@@ -178,6 +196,94 @@ export default class extends ExchangeRateFormController {
       this.cashbackPreviewTarget.textContent = "";
       this.cashbackPreviewTarget.classList.add("hidden");
     }
+  }
+
+  // "Spiccioli" (spare change) only applies to expenses on an account whose
+  // owner enabled it, so the row follows both the nature tabs and the
+  // account select. Switching to an eligible account re-checks the toggle
+  // (default on); a 422 re-render keeps whatever the user submitted.
+  updateRoundUp(resetSelection = false) {
+    if (!this.hasRoundUpSectionTarget) {
+      return;
+    }
+
+    const nature = this.hasNatureFieldTarget
+      ? this.natureFieldTarget.value
+      : "outflow";
+    const accountId = this.hasAccountTarget ? this.accountTarget.value : "";
+    const config = this.hasRoundUpAccountsValue
+      ? this.roundUpAccountsValue[accountId]
+      : null;
+    const eligible = nature === "outflow" && Boolean(config);
+    const wasHidden = this.roundUpSectionTarget.classList.contains("hidden");
+
+    this.roundUpSectionTarget.classList.toggle("hidden", !eligible);
+
+    if (!eligible) {
+      if (this.hasRoundUpToggleTarget) {
+        this.roundUpToggleTarget.checked = false;
+      }
+      return;
+    }
+
+    if (
+      wasHidden ||
+      resetSelection ||
+      this.roundUpAccountId !== accountId
+    ) {
+      this.roundUpAccountId = accountId;
+      if (this.hasRoundUpToggleTarget) {
+        this.roundUpToggleTarget.checked = true;
+      }
+    }
+
+    this.updateRoundUpPreview();
+  }
+
+  toggleRoundUp() {
+    this.updateRoundUpPreview();
+  }
+
+  updateRoundUpPreview() {
+    if (!this.hasRoundUpPreviewTarget) {
+      return;
+    }
+
+    const accountId = this.hasAccountTarget ? this.accountTarget.value : "";
+    const config = this.hasRoundUpAccountsValue
+      ? this.roundUpAccountsValue[accountId]
+      : null;
+
+    if (!config) {
+      this.roundUpPreviewTarget.textContent = "";
+      return;
+    }
+
+    const destination = config.destination;
+    const multiplier = `x${config.multiplier}`;
+    const rawAmount = this.hasAmountTarget ? this.amountTarget.value : "";
+    const amount = Number.parseFloat(rawAmount?.replace(",", "."));
+
+    if (Number.isNaN(amount) || amount <= 0) {
+      this.roundUpPreviewTarget.textContent = `${destination} (${multiplier})`;
+      return;
+    }
+
+    // Mirrors Transaction::RoundUpCreator: round up to the next whole unit,
+    // and move one whole unit when the amount is already round.
+    const whole = Math.ceil(amount);
+    let difference = whole - amount;
+    if (difference <= 0) {
+      difference = 1;
+    }
+    const moved = (difference * config.multiplier).toFixed(2);
+    const template =
+      this.roundUpPreviewTemplateValue || "%{amount} → %{destination} (%{multiplier})";
+
+    this.roundUpPreviewTarget.textContent = template
+      .replace("%{amount}", moved)
+      .replace("%{destination}", destination)
+      .replace("%{multiplier}", multiplier);
   }
 
   // Two independent restoration paths can hand a user this exact page - and

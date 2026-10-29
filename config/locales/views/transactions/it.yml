@@ -54,6 +54,19 @@ it:
       tag_search_placeholder: Cerca o crea etichetta
       tags_label: Etichette
       transfer: Bonifico
+      description_optional: Descrizione (facoltativa)
+      default_expense_name: Spesa
+      default_income_name: Entrata
+      round_up_label: Spiccioli
+      round_up_hint: Verso %{destination} (%{multiplier})
+      round_up_preview: "Arrotonda +%{amount} → %{destination} (%{multiplier})"
+    quick_new:
+      title: Nuova transazione
+      heading: NUOVA TRANSAZIONE
+    round_up:
+      outflow_name: "Spiccioli verso %{destination}"
+      inflow_name: "Spiccioli da %{source}"
+      error: "Impossibile creare il trasferimento degli spiccioli: %{message}"
     create:
       created: Transazione creata
     update:

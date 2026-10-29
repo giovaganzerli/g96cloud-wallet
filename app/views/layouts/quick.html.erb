@@ -1,0 +1,7 @@
+<%= render "layouts/shared/htmldoc" do %>
+  <div class="h-full overflow-y-auto bg-surface">
+    <main id="main" class="mx-auto w-full max-w-xl px-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-[calc(2rem+env(safe-area-inset-bottom))]">
+      <%= yield %>
+    </main>
+  </div>
+<% end %>

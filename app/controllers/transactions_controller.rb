@@ -1,5 +1,6 @@
 class TransactionsController < ApplicationController
   include EntryableResource
+  include QuickTransactionForm
 
   before_action :set_entry_for_unlock, only: :unlock
   before_action :set_entry_for_tags, only: :update_tags
@@ -12,11 +13,16 @@ class TransactionsController < ApplicationController
     assign_mark_recurring_state
   end
 
+  def quick_new
+    set_quick_form_options
+    render :quick_new, layout: "quick"
+  end
+
   def new
     prefill_params_from_duplicate!
     super
     apply_duplicate_attributes!
-    set_new_transaction_form_options
+    set_transaction_form_options
   end
 
   def index
@@ -136,8 +142,8 @@ class TransactionsController < ApplicationController
     if account.nil?
       @entry = Current.family.entries.new(entry_params)
       @entry.valid?
-      set_new_transaction_form_options
-      render :new, status: :unprocessable_entity
+      set_transaction_form_options
+      render_create_error
       return
     end
 
@@ -155,7 +161,10 @@ class TransactionsController < ApplicationController
       return
     end
 
-    @entry = account.entries.new(entry_params_with_idempotency_key(idempotency_key))
+    entry_attributes = entry_params
+    entry_attributes[:name] = default_entry_name if entry_attributes[:name].blank?
+
+    @entry = account.entries.new(entry_params_with_idempotency_key(idempotency_key, entry_attributes))
 
     cashback_creator = Transaction::CashbackCreator.new(
       parent_entry: @entry,
@@ -167,10 +176,19 @@ class TransactionsController < ApplicationController
       idempotency_key: idempotency_key
     )
 
+    round_up_creator = Transaction::RoundUpCreator.new(
+      parent_entry: @entry,
+      account: account,
+      family: Current.family,
+      enabled: params.dig(:entry, :round_up_enabled),
+      idempotency_key: idempotency_key,
+      user: Current.user
+    )
+
     if cashback_creator.enabled? && !cashback_creator.valid?
       @entry.errors.add(:base, cashback_creator.error_message)
-      set_new_transaction_form_options
-      render :new, status: :unprocessable_entity
+      set_transaction_form_options
+      render_create_error
       return
     end
 
@@ -192,6 +210,15 @@ class TransactionsController < ApplicationController
           end
         end
 
+        if round_up_creator.enabled?
+          begin
+            round_up_creator.create
+          rescue Money::ConversionError, ActiveRecord::RecordInvalid, Transfer::Creator::StaleIdempotencyKeyError => e
+            @entry.errors.add(:base, I18n.t("transactions.round_up.error", message: e.message))
+            raise ActiveRecord::Rollback
+          end
+        end
+
         success = true
       else
         raise ActiveRecord::Rollback
@@ -201,8 +228,8 @@ class TransactionsController < ApplicationController
     if success
       respond_with_created_entry(@entry)
     else
-      set_new_transaction_form_options
-      render :new, status: :unprocessable_entity
+      set_transaction_form_options
+      render_create_error
     end
   rescue ActiveRecord::RecordNotUnique
     # Concurrent-request backstop: two near-simultaneous submissions both
@@ -659,15 +686,15 @@ class TransactionsController < ApplicationController
       entry_params
     end
 
-    def entry_params_with_idempotency_key(idempotency_key)
-      return entry_params unless idempotency_key
+    def entry_params_with_idempotency_key(idempotency_key, attributes = entry_params)
+      return attributes unless idempotency_key
 
       # A dedicated column, deliberately not external_id/source: those are
       # provider-linkage fields (Entry#linked? = external_id.present?), and
       # reusing them here would make a manual entry look provider-synced -
       # disabling its date/nature/amount/currency fields in the editor, and
       # hiding it from future provider dedup matching.
-      entry_params.merge(idempotency_key: idempotency_key)
+      attributes.merge(idempotency_key: idempotency_key)
     end
 
     def find_duplicate_manual_entry(account, idempotency_key)
@@ -697,6 +724,30 @@ class TransactionsController < ApplicationController
     def respond_with_created_entry(entry)
       flash[:notice] = t(".created")
 
+      if quick_form_request?
+        nature = quick_nature_for(entry)
+        set_quick_form_options(nature: nature)
+
+        respond_to do |format|
+          format.html do
+            redirect_to quick_new_transaction_path(nature: nature), notice: t(".created")
+          end
+          format.turbo_stream do
+            # A fresh, empty entry replaces the saved one in place: the page
+            # never navigates, so the user can keep entering expenses.
+            fresh_entry = Current.family.entries.new(
+              currency: Current.family.currency,
+              entryable: Transaction.new
+            )
+            render turbo_stream: [
+              quick_form_streams(nature: nature, entry: fresh_entry),
+              *flash_notification_stream_items
+            ]
+          end
+        end
+        return
+      end
+
       respond_to do |format|
         format.html { redirect_back_or_to account_path(entry.account) }
         format.turbo_stream { stream_redirect_back_or_to(account_path(entry.account)) }
@@ -711,19 +762,23 @@ class TransactionsController < ApplicationController
       set_entry
     end
 
-    def set_new_transaction_form_options
-      accessible_accounts_scope = accessible_accounts
+    def default_entry_name
+      key = params.dig(:entry, :nature) == "inflow" ? :default_income_name : :default_expense_name
+      I18n.t("transactions.form.#{key}")
+    end
 
-      @account_currencies = accessible_accounts_scope.pluck(:id, :currency).to_h
-      @manual_accounts = accessible_accounts_scope
-        .manual
-        .active
-        .alphabetically
-        .includes(:account_providers, logo_attachment: :blob)
-        .to_a
-      @categories = Current.family.categories.alphabetically_by_hierarchy.to_a
-      @merchants = Current.family.available_merchants_for(Current.user).alphabetically.to_a
-      @tags = Current.family.tags.alphabetically.to_a
+    # The quick page resets to the nature the user just saved, so the next
+    # entry starts on the same tab instead of jumping back to expenses.
+    def quick_nature_for(entry)
+      entry.amount.to_d.negative? ? "inflow" : "outflow"
+    end
+
+    def render_create_error
+      if quick_form_request?
+        render_quick_form_error(nature: quick_nature_for(@entry))
+      else
+        render :new, status: :unprocessable_entity
+      end
     end
 
     # Filters entry_params based on the user's permission on the account.

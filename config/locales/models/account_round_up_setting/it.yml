@@ -1,0 +1,17 @@
+---
+it:
+  activerecord:
+    models:
+      account/round_up_setting: Spiccioli
+    attributes:
+      account/round_up_setting:
+        destination_account: Conto di destinazione
+        multiplier: Moltiplicatore
+    errors:
+      models:
+        account/round_up_setting:
+          attributes:
+            account:
+              invalid: deve essere un conto di liquidità
+            destination_account:
+              invalid: deve essere un conto di liquidità attivo della stessa famiglia
