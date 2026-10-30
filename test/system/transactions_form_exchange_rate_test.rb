@@ -26,14 +26,29 @@ class TransactionsFormExchangeRateTest < ApplicationSystemTestCase
   test "changing amount currency to different currency shows exchange rate UI" do
     visit new_transaction_path
 
+    assert_selector "form[data-controller~='transaction-form'] [data-transaction-form-target='exchangeRateContainer']", visible: :all
+
     # Select USD account (which is in USD)
     select_ds("Account", @account_usd)
 
     # Currency defaults to USD (same as account)
     # Change currency to EUR
-    find("select[data-money-field-target='currency']").find("option[value='EUR']").select_option
+    change_currency_to("EUR")
 
     # Exchange rate UI should appear
+    assert_selector "[data-transaction-form-target='exchangeRateContainer']", visible: true
+  end
+
+  test "closing the tag search preserves the enclosing transaction dialog" do
+    visit new_transaction_path
+    click_button I18n.t("transactions.form.search_tags")
+    within "[data-tag-chip-tools-target='searchDialog'][open]" do
+      click_button I18n.t("ds.dialog.close")
+    end
+    assert_no_selector "[data-tag-chip-tools-target='searchDialog'][open]"
+    assert_selector "form[data-controller~='transaction-form']"
+    select_ds("Account", @account_usd)
+    change_currency_to("EUR")
     assert_selector "[data-transaction-form-target='exchangeRateContainer']", visible: true
   end
 
@@ -44,13 +59,13 @@ class TransactionsFormExchangeRateTest < ApplicationSystemTestCase
     select_ds("Account", @account_usd)
 
     # Change to EUR first
-    find("select[data-money-field-target='currency']").find("option[value='EUR']").select_option
+    change_currency_to("EUR")
 
     # Verify exchange rate UI is shown
     assert_selector "[data-transaction-form-target='exchangeRateContainer']", visible: true
 
     # Change back to USD (same as account)
-    find("select[data-money-field-target='currency']").find("option[value='USD']").select_option
+    change_currency_to("USD")
 
     # Exchange rate UI should hide
     assert_selector "[data-transaction-form-target='exchangeRateContainer']", visible: false
@@ -63,7 +78,7 @@ class TransactionsFormExchangeRateTest < ApplicationSystemTestCase
     select_ds("Account", @account_usd)
 
     # Change to GBP (exchange rate is set up in fixtures)
-    find("select[data-money-field-target='currency']").find("option[value='GBP']").select_option
+    change_currency_to("GBP")
 
     # Wait for exchange rate container to become visible
     assert_selector "[data-transaction-form-target='exchangeRateContainer']", visible: true
@@ -79,7 +94,7 @@ class TransactionsFormExchangeRateTest < ApplicationSystemTestCase
     select_ds("Account", @account_usd)
 
     # Change to CHF (Swiss Franc - no rate set up in fixtures)
-    find("select[data-money-field-target='currency']").find("option[value='CHF']").select_option
+    change_currency_to("CHF")
 
     # Wait for exchange rate container to become visible (manual rate entry mode)
     assert_selector "[data-transaction-form-target='exchangeRateContainer']", visible: true
@@ -96,14 +111,14 @@ class TransactionsFormExchangeRateTest < ApplicationSystemTestCase
     select_ds("Account", @account_usd)
 
     # Change to EUR
-    find("select[data-money-field-target='currency']").find("option[value='EUR']").select_option
+    change_currency_to("EUR")
 
     # Wait for EUR rate to load (async fetch)
     assert_selector "[data-transaction-form-target='exchangeRateContainer']", visible: true
     first_rate = wait_for_exchange_rate_value("1.10")
 
     # Change to GBP
-    find("select[data-money-field-target='currency']").find("option[value='GBP']").select_option
+    change_currency_to("GBP")
 
     # Wait for the field to flip from EUR→GBP; reading immediately is flaky
     # because the previous value stays until the fetch completes.
@@ -128,7 +143,7 @@ class TransactionsFormExchangeRateTest < ApplicationSystemTestCase
     # Start with USD account, then currency EUR
     select_ds("Account", @account_usd)
 
-    find("select[data-money-field-target='currency']").find("option[value='EUR']").select_option
+    change_currency_to("EUR")
 
     # Exchange rate shown (both USD and EUR exist, they differ)
     assert_selector "[data-transaction-form-target='exchangeRateContainer']", visible: true
@@ -143,6 +158,11 @@ class TransactionsFormExchangeRateTest < ApplicationSystemTestCase
   end
 
   private
+    def change_currency_to(currency)
+      select = find("select[data-money-field-target='currency']")
+      select.find("option[value='#{currency}']").select_option
+    end
+
     # JS sets the input's value property after an async fetch. Waiting on the
     # HTML value= attribute is unreliable, so filter the node by .value.
     def wait_for_exchange_rate_value(expected)

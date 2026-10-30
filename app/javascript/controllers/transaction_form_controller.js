@@ -24,39 +24,31 @@ export default class extends ExchangeRateFormController {
   static values = {
     ...ExchangeRateFormController.values,
     roundUpAccounts: Object,
+    cashbackAccountIds: Array,
+    cashbackSelectionSubmitted: Boolean,
     roundUpPreviewTemplate: String,
   };
 
   connect() {
     super.connect?.();
-    this.roundUpAccountId = this.hasAccountTarget ? this.accountTarget.value : null;
-    this.updateCashbackAvailability();
+    this.roundUpAccountId = this.hasAccountTarget
+      ? this.accountTarget.value
+      : null;
+    this.cashbackAccountId = this.hasAccountTarget
+      ? this.accountTarget.value
+      : null;
+    this.updateCashbackAvailability(!this.cashbackSelectionSubmittedValue);
     this.updateRoundUp();
   }
 
   onNatureChange(event) {
-    const nature =
-      event?.detail?.nature ||
-      (this.hasNatureFieldTarget ? this.natureFieldTarget.value : "outflow");
-
-    if (this.hasCashbackSectionTarget) {
-      if (nature === "outflow") {
-        this.cashbackSectionTarget.classList.remove("hidden");
-        this.updateCashbackAvailability();
-      } else {
-        this.cashbackSectionTarget.classList.add("hidden");
-        if (this.hasCashbackToggleTarget && this.cashbackToggleTarget.checked) {
-          this.cashbackToggleTarget.checked = false;
-          this.toggleCashback();
-        }
-      }
-    }
-
+    this.updateCashbackAvailability(true);
     this.updateRoundUp();
   }
 
   onAccountChange() {
     this.checkCurrencyDifference();
+    this.updateCashbackAvailability(true);
     this.updateRoundUp(true);
   }
 
@@ -66,7 +58,7 @@ export default class extends ExchangeRateFormController {
     this.updateRoundUpPreview();
   }
 
-  updateCashbackAvailability() {
+  updateCashbackAvailability(resetSelection = false) {
     if (!this.hasCashbackToggleTarget) {
       return;
     }
@@ -75,14 +67,24 @@ export default class extends ExchangeRateFormController {
     const amount = Number.parseFloat(rawAmount?.replace(",", "."));
     const hasValidAmount = !Number.isNaN(amount) && amount > 0;
 
-    this.cashbackToggleTarget.disabled = !hasValidAmount;
+    const accountId = this.hasAccountTarget ? this.accountTarget.value : "";
+    const nature = this.hasNatureFieldTarget
+      ? this.natureFieldTarget.value
+      : "outflow";
+    const eligible =
+      nature === "outflow" && this.cashbackAccountIdsValue.includes(accountId);
 
-    if (!hasValidAmount && this.cashbackToggleTarget.checked) {
-      this.cashbackToggleTarget.checked = false;
-      this.toggleCashback();
-    } else if (hasValidAmount && this.cashbackToggleTarget.checked) {
-      this.updateCashbackPreview();
+    if (this.hasCashbackSectionTarget) {
+      this.cashbackSectionTarget.classList.toggle("hidden", !eligible);
     }
+    this.cashbackToggleTarget.disabled = !eligible || !hasValidAmount;
+
+    if (!eligible) {
+      this.cashbackToggleTarget.checked = false;
+    } else if (resetSelection || this.cashbackAccountId !== accountId) {
+      this.cashbackToggleTarget.checked = true;
+    }
+    this.cashbackAccountId = accountId;
   }
 
   toggleCashback() {
@@ -226,11 +228,7 @@ export default class extends ExchangeRateFormController {
       return;
     }
 
-    if (
-      wasHidden ||
-      resetSelection ||
-      this.roundUpAccountId !== accountId
-    ) {
+    if (wasHidden || resetSelection || this.roundUpAccountId !== accountId) {
       this.roundUpAccountId = accountId;
       if (this.hasRoundUpToggleTarget) {
         this.roundUpToggleTarget.checked = true;
@@ -278,7 +276,8 @@ export default class extends ExchangeRateFormController {
     }
     const moved = (difference * config.multiplier).toFixed(2);
     const template =
-      this.roundUpPreviewTemplateValue || "%{amount} → %{destination} (%{multiplier})";
+      this.roundUpPreviewTemplateValue ||
+      "%{amount} → %{destination} (%{multiplier})";
 
     this.roundUpPreviewTarget.textContent = template
       .replace("%{amount}", moved)

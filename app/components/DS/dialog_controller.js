@@ -105,6 +105,6 @@ export default class extends Controller {
   // an open dialog and reopening it on browser back.
   #clearParentModalFrame() {
     const frame = this.element.closest('turbo-frame[id="modal"]');
-    if (frame) frame.innerHTML = "";
+    if (frame?.querySelector("dialog") === this.element) frame.innerHTML = "";
   }
 }

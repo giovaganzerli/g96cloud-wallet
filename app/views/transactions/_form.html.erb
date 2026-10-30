@@ -8,6 +8,8 @@
         action: "turbo:before-cache@document->transaction-form#refreshIdempotencyKey pageshow@window->transaction-form#refreshIdempotencyKeyIfPersisted",
         transaction_form_exchange_rate_url_value: exchange_rate_path,
         transaction_form_account_currencies_value: account_currencies.to_json,
+        transaction_form_cashback_account_ids_value: cashback_account_ids_for_form(manual_accounts).to_json,
+        transaction_form_cashback_selection_submitted_value: params.dig(:entry, :cashback_enabled).present?,
         transaction_form_round_up_accounts_value: round_up_accounts.to_json,
         transaction_form_round_up_preview_template_value: t(
           ".round_up_preview",

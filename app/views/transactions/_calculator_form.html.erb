@@ -9,6 +9,8 @@
   "#{controller}_exchange_rate_url_value": exchange_rate_path,
   "#{controller}_account_currencies_value": account_currencies.to_json,
   transaction_form_round_up_accounts_value: round_up_accounts.to_json,
+  transaction_form_cashback_account_ids_value: cashback_account_ids_for_form(manual_accounts).to_json,
+  transaction_form_cashback_selection_submitted_value: params.dig(:entry, :cashback_enabled).present?,
   transaction_form_round_up_preview_template_value: t("transactions.form.round_up_preview", amount: "%{amount}", destination: "%{destination}", multiplier: "%{multiplier}")
 } %>
 

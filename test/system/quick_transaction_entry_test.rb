@@ -93,26 +93,28 @@ class QuickTransactionEntryTest < ApplicationSystemTestCase
     assert_equal "4.2", find("#entry_amount").value
     page.save_screenshot(Rails.root.join("tmp/screenshots/quick_calculator_mobile.png"))
 
-    find("[data-quick-entry-target='toggle']").click
+    toggle_quick_details
     assert_selector "[data-quick-entry-target='track'].-translate-x-full"
     fill_in I18n.t("transactions.form.description"), with: "Lunch"
     assert_selector "#quick-entry-details fieldset input[type='checkbox']", visible: :all
     assert_no_selector "#quick-entry-details [data-controller='tag-select']"
     page.save_screenshot(Rails.root.join("tmp/screenshots/quick_details_mobile.png"))
 
-    find("#quick-entry-details button[data-action='quick-entry#toggle']").click
+    toggle_quick_details
     assert_equal "4.2", find("#entry_amount").value
-    find("[data-quick-entry-target='toggle']").click
+    toggle_quick_details
     assert_field I18n.t("transactions.form.description"), with: "Lunch"
   ensure
     page.driver.browser.manage.window.resize_to(1400, 1400)
   end
 
   test "long amounts and tag names fit and detail labels share the same left edge" do
+    @account.create_cashback_setting!(enabled: true, percentage: 2)
     tags(:one).update!(name: "International travel and accommodation", color: Tag::COLORS.first)
     page.driver.browser.manage.window.resize_to(390, 844)
     visit quick_new_transaction_path
 
+    select_ds("Account", @account)
     fill_in "Amount", with: "123456789012345.67"
     assert_selector "#entry_amount[style]"
     assert_operator page.evaluate_script("parseFloat(getComputedStyle(document.querySelector('#entry_amount')).fontSize)"), :<, 72
@@ -126,7 +128,8 @@ class QuickTransactionEntryTest < ApplicationSystemTestCase
     assert_field I18n.t("transactions.form.description")
     page.evaluate_async_script("const done = arguments[0]; Promise.all(document.querySelector('[data-quick-entry-target=track]').getAnimations().map(animation => animation.finished)).then(() => done(true));")
     find("label[for='entry_cashback_enabled']", text: I18n.t("transactions.form.cashback_label"), exact_text: true).click
-    assert_selector "[data-transaction-form-target='cashbackDetails']:not(.hidden)"
+    assert_unchecked_field "entry_cashback_enabled", visible: :all
+    assert_no_selector "[data-transaction-form-target='cashbackDetails']", visible: :all
     label_edges = page.evaluate_script(<<~JS)
       Array.from(document.querySelectorAll('#quick-entry-details .form-field__label, #quick-entry-details legend, #quick-entry-details label[for="entry_cashback_enabled"]'))
         .filter(label => label.textContent.trim() && label.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }) && label.getClientRects().length > 0)
@@ -173,4 +176,65 @@ class QuickTransactionEntryTest < ApplicationSystemTestCase
     assert_text I18n.t("transactions.quick_new.offline_queue.title")
     assert_text I18n.t("transactions.quick_new.offline_queue.empty")
   end
+
+  test "cashback follows account settings and preserves an explicit opt out" do
+    @account.create_cashback_setting!(enabled: true, percentage: 2)
+    visit quick_new_transaction_path
+    select_ds("Account", @savings)
+    fill_in "Amount", with: "100"
+    toggle_quick_details
+    assert_no_selector "[data-transaction-form-target='cashbackSection']"
+
+    toggle_quick_details
+    select_ds("Account", @account)
+    toggle_quick_details
+    assert_checked_field "entry_cashback_enabled", visible: :all
+    find("label[for='entry_cashback_enabled']", text: I18n.t("transactions.form.cashback_label"), exact_text: true).click
+    assert_unchecked_field "entry_cashback_enabled", visible: :all
+
+    toggle_quick_details
+    fill_in "Amount", with: "200"
+    toggle_quick_details
+    assert_unchecked_field "entry_cashback_enabled", visible: :all
+    find("label[for='entry_cashback_enabled']", text: I18n.t("transactions.form.cashback_label"), exact_text: true).click
+    click_button I18n.t("transactions.form.submit")
+    assert_text I18n.t("transactions.create.created")
+    cashback = @account.entries.where("name LIKE ?", "Cashback%").order(:created_at).last
+    assert_equal BigDecimal("-4"), cashback.amount
+  end
+
+  test "tag dialogs do not submit or break the transaction form" do
+    visit quick_new_transaction_path
+    find("[data-quick-entry-target='toggle']").click
+    page.evaluate_async_script("const done = arguments[0]; Promise.all(document.querySelector('[data-quick-entry-target=track]').getAnimations().map(animation => animation.finished)).then(() => done(true));")
+    click_button I18n.t("transactions.form.search_tags")
+    within "dialog[open]" do
+      fill_in I18n.t("transactions.form.search_tags"), with: tags(:one).name
+      click_button tags(:one).name, exact: true
+      find("input[type='search']").send_keys(:enter)
+    end
+    within("dialog[open]") { click_button I18n.t("ds.dialog.close") }
+    assert_no_selector "dialog[open]"
+    assert_selector "#quick-entry-details input[value='#{tags(:one).id}']:checked", visible: :all
+
+    click_button I18n.t("transactions.form.create_tag")
+    within "dialog[open]" do
+      find("[data-tag-chip-tools-target='createName']").set("Quick entry tag")
+      click_button I18n.t("transactions.form.save")
+    end
+    assert_no_selector "dialog[open]"
+    find("[data-quick-entry-target='toggle']").click
+    assert_selector "#quick-entry-details label", text: "Quick entry tag"
+    assert_selector "form[data-controller~='transaction-form'] [type='submit']"
+  end
+
+  private
+    def toggle_quick_details
+      if page.has_selector?("[data-quick-entry-target='primary'][inert]")
+        find("#quick-entry-details button[data-action='quick-entry#toggle']").click
+      else
+        find("[data-quick-entry-target='toggle']").click
+      end
+      page.evaluate_async_script("const done = arguments[0]; Promise.all(document.querySelector('[data-quick-entry-target=track]').getAnimations().map(animation => animation.finished)).then(() => done(true));")
+    end
 end

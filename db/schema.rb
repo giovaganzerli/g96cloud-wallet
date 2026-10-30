@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_29_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_30_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -20,6 +20,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_120000) do
   create_enum "account_status", ["ok", "syncing", "error"]
   create_enum "goal_pledge_kind", ["transfer", "manual_save"]
   create_enum "goal_pledge_status", ["open", "matched", "cancelled", "expired"]
+
+  create_table "account_cashback_settings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id", null: false
+    t.datetime "created_at", null: false
+    t.boolean "enabled", default: false, null: false
+    t.decimal "percentage", precision: 5, scale: 2
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_account_cashback_settings_on_account_id", unique: true
+  end
 
   create_table "account_providers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "account_id", null: false
@@ -2981,6 +2990,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_120000) do
     t.index ["status"], name: "index_wise_items_on_status"
   end
 
+  add_foreign_key "account_cashback_settings", "accounts"
   add_foreign_key "account_providers", "accounts", on_delete: :cascade
   add_foreign_key "account_round_up_settings", "accounts", column: "destination_account_id", on_delete: :nullify
   add_foreign_key "account_round_up_settings", "accounts", on_delete: :cascade

@@ -1,4 +1,8 @@
 module TransactionsHelper
+  def cashback_account_ids_for_form(accounts)
+    accounts.select { |account| account.cashback_setting&.enabled? }.map { |account| account.id.to_s }
+  end
+
   # @return [Array<Hash>] the filters offered above the transaction list, each
   #   with the key its partial is named for, a translated label and an icon
   def transaction_search_filters
