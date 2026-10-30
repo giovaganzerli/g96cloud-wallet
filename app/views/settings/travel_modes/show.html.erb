@@ -1,0 +1,10 @@
+<%= render DS::Dialog.new do |dialog| %>
+  <% dialog.with_header(title: t("settings.travel_modes.title")) %>
+  <% dialog.with_body do %>
+    <%= form_with model: Current.user, url: settings_travel_mode_path, method: :patch, class: "space-y-4" do |form| %>
+      <p class="text-sm text-secondary"><%= t("settings.travel_modes.description") %></p>
+      <%= render DS::TagSelect.new(form: form, attribute: :travel_tag_ids, tags: @tags, selected_ids: Current.user.travel_tag_ids, label: t("transactions.form.tags_label")) %>
+      <%= render DS::Button.new(text: t("settings.travel_modes.save"), type: :submit, full_width: true) %>
+    <% end %>
+  <% end %>
+<% end %>

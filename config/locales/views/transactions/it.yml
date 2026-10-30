@@ -27,6 +27,9 @@ it:
       edit: Modifica
       selected: selezionate
     form:
+      search_tags: Cerca etichette
+      close: Chiudi
+      save: Salva
       details: Dettagli
       account: Conto
       account_prompt: Seleziona un conto

@@ -6,6 +6,13 @@ en:
         renewal: "Your contribution continues on %{date}."
         cancellation: "Your contribution ends on %{date}."
   settings:
+    travel_modes:
+      menu_label: Travel mode
+      title: Travel mode
+      description: Automatically add the selected label to new income and expense transactions.
+      disabled: Disabled
+      save: Save
+      updated: Travel mode updated.
     background_jobs:
       show:
         page_title: "Background jobs"

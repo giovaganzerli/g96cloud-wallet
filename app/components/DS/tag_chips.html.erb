@@ -1,4 +1,4 @@
-<fieldset class="space-y-3">
+<fieldset class="space-y-3" data-controller="tag-chip-tools" data-tag-chip-tools-create-url-value="<%= helpers.tags_path(format: :json) %>">
   <legend class="text-sm text-secondary"><%= helpers.t("transactions.form.tags_label") %></legend>
   <div class="space-y-1">
     <% tags.each_slice(3) do |row| %>
@@ -16,5 +16,13 @@
       </div>
     <% end %>
     <%= hidden_field_tag "#{form.object_name}[tag_ids][]", "" %>
+    <div class="flex gap-2 pt-1">
+      <button type="button" class="flex h-11 w-11 items-center justify-center rounded-full border border-primary bg-container-inset text-primary" data-action="tag-chip-tools#openSearch"><%= helpers.icon("search") %><span class="sr-only"><%= helpers.t("transactions.form.search_tags") %></span></button>
+      <button type="button" class="flex h-11 w-11 items-center justify-center rounded-full border border-primary bg-container-inset text-primary" data-action="tag-chip-tools#openCreate"><%= helpers.icon("plus") %><span class="sr-only"><%= helpers.t("transactions.form.create_tag") %></span></button>
+    </div>
   </div>
+  <dialog class="w-full max-w-lg rounded-xl bg-container p-4 text-primary backdrop:bg-overlay" data-tag-chip-tools-target="searchDialog">
+    <div class="space-y-3"><input type="search" class="form-field__input" placeholder="<%= helpers.t("transactions.form.search_tags") %>" data-tag-chip-tools-target="search" data-action="input->tag-chip-tools#filter"><div class="space-y-1"><% tags.each do |tag| %><button type="button" class="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-container-inset" data-tag-chip-tools-target="option" data-id="<%= tag.id %>" data-action="tag-chip-tools#select"><%= tag.name %></button><% end %></div><button type="button" class="text-sm text-secondary" data-action="tag-chip-tools#close"><%= helpers.t("transactions.form.close") %></button></div>
+  </dialog>
+  <dialog class="w-full max-w-lg rounded-xl bg-container p-4 text-primary backdrop:bg-overlay" data-tag-chip-tools-target="createDialog"><form class="space-y-3" data-action="submit->tag-chip-tools#create"><label class="form-field__label"><%= helpers.t("transactions.form.create_tag") %><input required autocomplete="off" class="form-field__input" data-tag-chip-tools-target="createName"></label><button class="btn btn-primary" type="submit"><%= helpers.t("transactions.form.save") %></button></form></dialog>
 </fieldset>

@@ -100,11 +100,13 @@ module QuickTransactionForm
     def build_quick_entry
       account = accessible_accounts.find_by(id: params[:account_id])
 
-      Current.family.entries.new(
+      entry = Current.family.entries.new(
         account: account,
         currency: account&.currency || Current.family.currency,
         entryable: Transaction.new
       )
+      entry.transaction.tag_ids = [ Current.user.travel_tag.id ] if Current.user.travel_tag
+      entry
     end
 
     # Only accounts the user can actually move money into: the destination is

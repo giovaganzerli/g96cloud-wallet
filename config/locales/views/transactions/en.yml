@@ -27,6 +27,9 @@ en:
       edit: Edit
       selected: selected
     form:
+      search_tags: Search tags
+      close: Close
+      save: Save
       details: Details
       account: Account
       account_prompt: Select an Account

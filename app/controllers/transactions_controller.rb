@@ -22,6 +22,7 @@ class TransactionsController < ApplicationController
     prefill_params_from_duplicate!
     super
     apply_duplicate_attributes!
+    apply_travel_tag!
     set_transaction_form_options
   end
 
@@ -572,6 +573,13 @@ class TransactionsController < ApplicationController
   end
 
   private
+
+    def apply_travel_tag!
+      return if params[:entry].present? || @entry.transaction.tag_ids.any?
+
+      tag = Current.user.travel_tag
+      @entry.transaction.tag_ids = [ tag.id ] if tag
+    end
     # Scoped by user (not just family) because Current.accessible_entries is
     # user-scoped for family sharing (see Current#accessible_entries).
     #

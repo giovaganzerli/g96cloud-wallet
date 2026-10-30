@@ -6,6 +6,13 @@ it:
         renewal: "Il tuo contributo continua il %{date}."
         cancellation: "Il tuo contributo termina il %{date}."
   settings:
+    travel_modes:
+      menu_label: Modalità viaggio
+      title: Modalità viaggio
+      description: Aggiunge automaticamente l'etichetta selezionata alle nuove entrate e uscite.
+      disabled: Disattivata
+      save: Salva
+      updated: Modalità viaggio aggiornata.
     debugs:
       show:
         page_title: "Debug"

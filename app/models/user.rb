@@ -693,6 +693,24 @@ class User < ApplicationRecord
   end
 
   # Transactions preferences management
+
+  def travel_tag_id
+    preferences&.dig("travel_mode", "tag_id")
+  end
+
+  def travel_tag
+    family.tags.find_by(id: travel_tag_id) if travel_tag_id.present?
+  end
+
+  def travel_tag_ids
+    [ travel_tag_id ].compact
+  end
+
+  def update_travel_tag(tag)
+    updated_preferences = (preferences || {}).deep_dup
+    updated_preferences["travel_mode"] = tag ? { "tag_id" => tag.id } : {}
+    update!(preferences: updated_preferences)
+  end
   def show_split_grouped?
     preferences&.dig("show_split_grouped") != false
   end

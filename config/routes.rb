@@ -389,6 +389,7 @@ Rails.application.routes.draw do
   end
 
   namespace :settings do
+    resource :travel_mode, only: %i[show update]
     resource :profile, only: [ :show, :destroy ]
     resource :preferences, only: %i[show update]
     resource :budget_shares, only: :update
