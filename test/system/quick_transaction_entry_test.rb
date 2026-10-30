@@ -169,6 +169,7 @@ class QuickTransactionEntryTest < ApplicationSystemTestCase
   test "shows the offline transaction queue section" do
     visit quick_new_transaction_path
 
+    assert_selector "link[rel='manifest'][href='#{quick_pwa_manifest_path}']", visible: :all
     assert_text I18n.t("transactions.quick_new.offline_queue.title")
     assert_text I18n.t("transactions.quick_new.offline_queue.empty")
   end
