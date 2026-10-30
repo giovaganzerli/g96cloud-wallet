@@ -8,6 +8,10 @@ class PwaController < ApplicationController
     render "pwa/manifest", formats: [ :json ], content_type: "application/manifest+json"
   end
 
+  def quick_manifest
+    render "pwa/quick_manifest", formats: [ :json ], content_type: "application/manifest+json"
+  end
+
   def service_worker
     # Explicitly render JS template to avoid format negotiation issues
     render "pwa/service-worker", formats: [ :js ], content_type: "application/javascript"

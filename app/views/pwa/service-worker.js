@@ -1,4 +1,5 @@
-const CACHE_VERSION = 'v1-wallet-8ad5b8fbb493';
+const CACHE_VERSION = 'v2-wallet-8ad5b8fbb493';
+const QUICK_ENTRY_CACHE = 'quick-entry-v1';
 const OFFLINE_ASSETS = [
   '/offline.html',
   '/branding/wallet-8ad5b8fbb493-512.png'
@@ -38,7 +39,15 @@ self.addEventListener('fetch', (event) => {
   // Handle navigation requests (page loads)
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch((error) => {
+      fetch(event.request).then((response) => {
+        if (new URL(event.request.url).pathname === '/transactions/quick-new' && response.ok) {
+          caches.open(QUICK_ENTRY_CACHE).then(cache => cache.put(event.request, response.clone()));
+        }
+        return response;
+      }).catch((error) => {
+        if (new URL(event.request.url).pathname === '/transactions/quick-new') {
+          return caches.match(event.request).then(response => response || caches.match('/offline.html'));
+        }
         // Only show offline page for network errors
         if (error.name === 'TypeError' || !navigator.onLine) {
           return caches.match('/offline.html');
@@ -53,6 +62,14 @@ self.addEventListener('fetch', (event) => {
       caches.match(event.request).then((response) => {
         return response || fetch(event.request);
       })
+    );
+  }
+  else if (["script", "style", "font", "image"].includes(event.request.destination) && new URL(event.request.url).origin === self.location.origin) {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        if (response.ok) caches.open(QUICK_ENTRY_CACHE).then(cache => cache.put(event.request, response.clone()));
+        return response;
+      }).catch(() => caches.match(event.request))
     );
   }
 });

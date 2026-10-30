@@ -4,7 +4,7 @@
 <% model = transferring ? transfer : entry %>
 <% form_data = {
   controller: "quick-entry #{controller}",
-  action: "input->quick-entry#updateSummary change->quick-entry#updateSummary submit->quick-entry#calculate invalid->quick-entry#revealInvalidField:capture turbo:before-cache@document->quick-entry#reset pageshow@window->quick-entry#restore dblclick->quick-entry#preventZoom touchstart->quick-entry#preventZoom:!passive touchmove->quick-entry#preventScroll:!passive gesturestart->quick-entry#preventZoom:!passive",
+  action: "input->quick-entry#updateSummary change->quick-entry#updateSummary submit->offline-transaction-queue#submit submit->quick-entry#calculate invalid->quick-entry#revealInvalidField:capture turbo:before-cache@document->quick-entry#reset pageshow@window->quick-entry#restore dblclick->quick-entry#preventZoom touchstart->quick-entry#preventZoom:!passive touchmove->quick-entry#preventScroll:!passive gesturestart->quick-entry#preventZoom:!passive",
   quick_entry_currencies_value: account_currencies.to_json,
   "#{controller}_exchange_rate_url_value": exchange_rate_path,
   "#{controller}_account_currencies_value": account_currencies.to_json,
@@ -13,7 +13,7 @@
 } %>
 
 <%= styled_form_with model: model, url: transferring ? transfers_path : transactions_path,
-      class: "flex h-full touch-pan-y flex-col overflow-clip overscroll-none bg-container", data: form_data do |f| %>
+      class: "flex h-full touch-pan-y flex-col overflow-clip overscroll-none bg-container", data: form_data.merge(controller: "#{form_data[:controller]} offline-transaction-queue") do |f| %>
   <template data-select-sheet-template>
     <%= render DS::Dialog.new(auto_open: false, disable_frame: true, width: "expanded", content_class: "h-[85dvh]", data: { controller: "select-sheet", action: "close->select-sheet#closed" }) do |dialog| %>
       <% dialog.with_header(title: t("transactions.quick_new.choose_option")) %>
@@ -123,6 +123,18 @@
             </section>
           <% end %>
           <%= render "transactions/quick_exchange_fields", form: f, transferring: transferring %>
+          <section class="space-y-2"
+                   data-offline-transaction-queue-target="root"
+                   data-offline-transaction-queue-edit-label-value="<%= t("transactions.quick_new.offline_queue.edit") %>"
+                   data-offline-transaction-queue-delete-label-value="<%= t("transactions.quick_new.offline_queue.delete") %>"
+                   data-offline-transaction-queue-unnamed-label-value="<%= t("transactions.quick_new.offline_queue.unnamed") %>">
+            <div class="flex items-center justify-between">
+              <h2 class="text-sm text-secondary"><%= t("transactions.quick_new.offline_queue.title") %></h2>
+              <span class="text-xs text-secondary" data-offline-transaction-queue-target="count">0</span>
+            </div>
+            <p class="text-xs text-secondary" data-offline-transaction-queue-target="empty"><%= t("transactions.quick_new.offline_queue.empty") %></p>
+            <div data-offline-transaction-queue-target="list"></div>
+          </section>
         </div>
       </section>
     </div>

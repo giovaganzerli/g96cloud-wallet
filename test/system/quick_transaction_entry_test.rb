@@ -165,4 +165,11 @@ class QuickTransactionEntryTest < ApplicationSystemTestCase
     page.execute_script("window.scrollTo(100, 100)")
     assert_equal [ 0, 0 ], page.evaluate_script("[window.scrollX, window.scrollY]")
   end
+
+  test "shows the offline transaction queue section" do
+    visit quick_new_transaction_path
+
+    assert_text I18n.t("transactions.quick_new.offline_queue.title")
+    assert_text I18n.t("transactions.quick_new.offline_queue.empty")
+  end
 end

@@ -68,6 +68,15 @@ en:
       round_up_hint: To %{destination} (%{multiplier})
       round_up_preview: "Rounds up +%{amount} to %{destination} (%{multiplier})"
     quick_new:
+      offline_queue:
+        title: Pending transactions
+        empty: No transactions waiting to sync.
+        edit: Edit
+        delete: Delete
+        unnamed: Transaction
+      pwa_name: "%{product_name} Quick Entry"
+      pwa_short_name: Quick Entry
+      pwa_description: "Quickly add a transaction to %{product_name}."
       title: New transaction
       heading: New transaction
       close: Close quick entry

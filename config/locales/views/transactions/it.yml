@@ -62,6 +62,15 @@ it:
       round_up_hint: Verso %{destination} (%{multiplier})
       round_up_preview: "Arrotonda +%{amount} → %{destination} (%{multiplier})"
     quick_new:
+      offline_queue:
+        title: Transazioni in attesa
+        empty: Nessuna transazione in attesa di sincronizzazione.
+        edit: Modifica
+        delete: Elimina
+        unnamed: Transazione
+      pwa_name: "%{product_name} Inserimento rapido"
+      pwa_short_name: Inserimento
+      pwa_description: "Aggiungi rapidamente una transazione a %{product_name}."
       title: Nuova transazione
       heading: NUOVA TRANSAZIONE
       close: Chiudi inserimento rapido

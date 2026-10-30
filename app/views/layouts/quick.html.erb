@@ -1,4 +1,5 @@
 <% content_for :viewport, "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" %>
+<% content_for :pwa_manifest, quick_pwa_manifest_path %>
 <%= render "layouts/shared/htmldoc" do %>
   <div class="fixed inset-0 h-dvh w-full overflow-clip overscroll-none bg-surface">
     <main id="main" class="h-full w-full">
