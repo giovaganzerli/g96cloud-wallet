@@ -7,6 +7,7 @@ class PwaControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal "application/manifest+json", response.media_type
     assert_includes response.body, '"start_url": "/"'
+    assert_includes response.body, '"url": "/transactions/quick-new"'
   end
 
   test "quick-entry manifest has its own app identity and launch URL" do

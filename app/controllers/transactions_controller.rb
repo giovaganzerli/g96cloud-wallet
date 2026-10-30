@@ -167,13 +167,14 @@ class TransactionsController < ApplicationController
 
     @entry = account.entries.new(entry_params_with_idempotency_key(idempotency_key, entry_attributes))
 
+    cashback_setting = account.cashback_setting
     cashback_creator = Transaction::CashbackCreator.new(
       parent_entry: @entry,
       account: account,
       family: Current.family,
-      enabled: params.dig(:entry, :cashback_enabled),
-      value: params.dig(:entry, :cashback_value),
-      type: params.dig(:entry, :cashback_type),
+      enabled: cashback_setting&.enabled? && params.dig(:entry, :cashback_enabled),
+      value: cashback_setting&.percentage,
+      type: "percentage",
       idempotency_key: idempotency_key
     )
 

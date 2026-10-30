@@ -158,6 +158,7 @@ module AccountableResource
         :institution_name, :institution_domain, :notes, :exclude_from_reports,
         :enable_category_matcher,
         round_up_setting_attributes: [ :id, :enabled, :destination_account_id, :multiplier ],
+        cashback_setting_attributes: [ :id, :enabled, :percentage ],
         accountable_attributes: self.class.permitted_accountable_attributes
       )
     end

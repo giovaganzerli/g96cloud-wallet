@@ -38,8 +38,16 @@ class Account < ApplicationRecord
           source: :destination_account
   accepts_nested_attributes_for :round_up_setting,
                                 reject_if: ->(attributes) {
-                                  attributes["id"].blank? && !ActiveModel::Type::Boolean.new.cast(attributes["enabled"])
-                                }
+                                   attributes["id"].blank? && !ActiveModel::Type::Boolean.new.cast(attributes["enabled"])
+                                 }
+  has_one :cashback_setting,
+          class_name: "Account::CashbackSetting",
+          dependent: :destroy,
+          inverse_of: :account
+  accepts_nested_attributes_for :cashback_setting,
+                                 reject_if: ->(attributes) {
+                                   attributes["id"].blank? && !ActiveModel::Type::Boolean.new.cast(attributes["enabled"])
+                                 }
   # Inverse for recurring transfers where this account is the destination.
   # Account#recurring_transactions only matches account_id; without this
   # association, destroying the destination account would hit the FK

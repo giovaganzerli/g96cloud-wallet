@@ -1,0 +1,10 @@
+<% setting = account.cashback_setting || account.build_cashback_setting %>
+<%= form.fields_for :cashback_setting, setting do |cashback_form| %>
+  <div class="space-y-2 border-t border-tertiary pt-3">
+    <div class="flex items-start justify-between gap-3">
+      <div class="space-y-1"><p class="text-sm font-medium text-primary"><%= t(".label") %></p><p class="text-sm text-secondary"><%= t(".hint") %></p></div>
+      <%= cashback_form.toggle :enabled %>
+    </div>
+    <%= cashback_form.number_field :percentage, min: 0.01, max: 100, step: 0.01, label: t(".percentage_label") %>
+  </div>
+<% end %>

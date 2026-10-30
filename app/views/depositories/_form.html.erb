@@ -7,5 +7,6 @@
 
   <% if account.persisted? %>
     <%= render "depositories/round_up_fields", form: form, account: account %>
+    <%= render "depositories/cashback_fields", form: form, account: account %>
   <% end %>
 <% end %>
