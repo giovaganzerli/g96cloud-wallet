@@ -114,7 +114,8 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_enqueued_with(job: SyncJob)
   end
 
-  test "creates expense transaction with fixed cashback" do
+  test "cashback uses account percentage instead of submitted fixed value" do
+    @entry.account.create_cashback_setting!(enabled: true, percentage: 5)
     assert_difference [ "Entry.count", "Transaction.count" ], 2 do
       post transactions_url, params: {
         entry: {
@@ -126,7 +127,7 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
           nature: "outflow",
           entryable_type: "Transaction",
           cashback_enabled: "1",
-          cashback_value: "10.00",
+          cashback_value: "90.00",
           cashback_type: "fixed",
           entryable_attributes: { category_id: categories(:food_and_drink).id }
         }
@@ -150,6 +151,7 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates expense transaction with percentage cashback" do
+    @entry.account.create_cashback_setting!(enabled: true, percentage: 5)
     assert_difference [ "Entry.count", "Transaction.count" ], 2 do
       post transactions_url, params: {
         entry: {
@@ -161,7 +163,7 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
           nature: "outflow",
           entryable_type: "Transaction",
           cashback_enabled: "1",
-          cashback_value: "5",
+          cashback_value: "50",
           cashback_type: "percentage",
           entryable_attributes: { category_id: categories(:food_and_drink).id }
         }
@@ -176,8 +178,9 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal(-10.0, cashback_entry.amount) # 5% of 200 = 10.00
   end
 
-  test "returns unprocessable entity when cashback is enabled with zero value" do
-    assert_no_difference [ "Entry.count", "Transaction.count" ] do
+  test "ignores submitted cashback when account cashback is not configured" do
+    @entry.account.cashback_setting&.destroy!
+    assert_difference [ "Entry.count", "Transaction.count" ], 1 do
       post transactions_url, params: {
         entry: {
           account_id: @entry.account_id,
@@ -195,7 +198,7 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_response :unprocessable_entity
+    assert_response :redirect
   end
 
   test "resubmitting the same idempotency key does not create a duplicate transaction" do
