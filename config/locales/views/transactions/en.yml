@@ -57,6 +57,7 @@ en:
       create_merchant_error: Could not create merchant
       merchant_search_placeholder: Search or create merchant
       submit: Add transaction
+      templates: Templates
       tag_search_placeholder: Search or create tag
       tags_label: Tags
       transfer: Transfer
@@ -69,6 +70,18 @@ en:
     quick_new:
       title: New transaction
       heading: New transaction
+      close: Close quick entry
+      back: Back to calculator
+      currency: Currency
+      keypad: Calculator keypad
+      choose_option: Choose an option
+      decimal: Decimal separator
+      backspace: Delete last digit
+      divide: Divide
+      multiply: Multiply
+      subtract: Subtract
+      add: Add
+      equals: Calculate result
     round_up:
       outflow_name: "Spare change to %{destination}"
       inflow_name: "Spare change from %{source}"

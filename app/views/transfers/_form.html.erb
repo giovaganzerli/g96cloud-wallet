@@ -1,10 +1,10 @@
 <%# locals: (transfer:, quick: false, idempotency_key: nil) %>
 
 <% account_currencies = Current.family.accounts.map { |a| [a.id, a.currency] }.to_h.to_json %>
-<% form_data = { controller: "transfer-form", transfer_form_exchange_rate_url_value: exchange_rate_path, transfer_form_account_currencies_value: account_currencies } %>
+<% form_data = { controller: class_names("transfer-form", ("quick-entry" if quick)), transfer_form_exchange_rate_url_value: exchange_rate_path, transfer_form_account_currencies_value: account_currencies } %>
 <% form_data[:turbo_frame] = "_top" unless quick %>
 
-<%= styled_form_with model: transfer, class: "space-y-4", data: form_data do |f| %>
+<%= styled_form_with model: transfer, class: class_names("space-y-4", (quick ? "pb-20" : nil)), data: form_data do |f| %>
   <% if quick %>
     <%= hidden_field_tag :quick_new, "1" %>
   <% end %>
@@ -42,19 +42,32 @@
     </section>
   <% end %>
 
-  <section class="space-y-2">
+  <section class="space-y-3">
+    <div class="<%= "rounded-xl bg-container-inset px-4 py-5" if quick %>">
+      <%= f.number_field :amount,
+            label: t(".source_amount"),
+            required: true,
+            min: 0,
+            placeholder: "100",
+            step: 0.00000001,
+            class: class_names("form-field__input", ("border-0 bg-transparent text-center text-5xl font-medium tabular-nums shadow-none" if quick)),
+            data: { transfer_form_target: "amount", action: "input->transfer-form#onSourceAmountChange" } %>
+    </div>
+
     <%= f.collection_select :from_account_id, @accounts, :id, :name, { prompt: t(".select_account"), label: t(".from"), selected: @from_account_id, variant: :logo }, { required: true, data: { transfer_form_target: "fromAccount", action: "change->transfer-form#checkCurrencyDifference" } } %>
     <%= f.collection_select :to_account_id, @accounts, :id, :name, { prompt: t(".select_account"), label: t(".to"), variant: :logo }, { required: true, data: { transfer_form_target: "toAccount", action: "change->transfer-form#checkCurrencyDifference" } } %>
 
-    <%= f.date_field :date, value: transfer.inflow_transaction&.entry&.date || Date.current, label: t(".date"), required: true, max: Date.current, data: { transfer_form_target: "date", action: "change->transfer-form#checkCurrencyDifference" } %>
+    <div class="<%= "hidden" if quick %>" <%= "data-quick-entry-target=details" if quick %>>
+      <%= f.date_field :date, value: transfer.inflow_transaction&.entry&.date || Date.current, label: t(".date"), required: true, max: Date.current, data: { transfer_form_target: "date", action: "change->transfer-form#checkCurrencyDifference" } %>
+    </div>
 
-    <%= f.number_field :amount, label: t(".source_amount"), required: true, min: 0, placeholder: "100", step: 0.00000001, data: { transfer_form_target: "amount", action: "input->transfer-form#onSourceAmountChange" } %>
-
-    <%= render DS::TagSelect.new(
-          form: f,
-          tags: @tags,
-          selected_ids: Array(f.object.tag_ids)
-        ) %>
+    <div class="<%= "hidden" if quick %>" <%= "data-quick-entry-target=details" if quick %>>
+      <%= render DS::TagSelect.new(
+            form: f,
+            tags: @tags,
+            selected_ids: Array(f.object.tag_ids)
+          ) %>
+    </div>
 
     <% convert_input = capture do %>
       <%= f.number_field :exchange_rate,
@@ -93,6 +106,21 @@
       convert_input: convert_input,
       destination_input: destination_input %>
   </section>
+
+  <% if quick %>
+    <div class="flex items-center justify-center border-y border-tertiary py-3">
+      <span class="text-sm font-medium text-secondary"><%= t("transactions.form.templates") %></span>
+    </div>
+
+    <button type="button"
+            class="fixed right-0 top-1/2 z-20 flex h-16 w-9 -translate-y-1/2 items-center justify-center rounded-l-xl border border-r-0 border-primary bg-container text-primary shadow-border-lg focus-ring"
+            data-quick-entry-target="toggle"
+            data-action="click->quick-entry#toggle"
+            aria-expanded="false">
+      <%= icon "chevron-left" %>
+      <span class="sr-only"><%= t("transactions.form.details") %></span>
+    </button>
+  <% end %>
 
   <section>
     <%= render DS::Disclosure.new(title: t(".bank_charges"), open: false, variant: :inline) do %>

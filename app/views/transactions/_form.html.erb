@@ -2,9 +2,9 @@
 
 <%= styled_form_with model: entry,
       url: transactions_path,
-      class: "space-y-4",
+      class: class_names("space-y-4", (quick ? "pb-20" : nil)),
       data: {
-        controller: "transaction-form",
+        controller: class_names("transaction-form", ("quick-entry" if quick)),
         action: "turbo:before-cache@document->transaction-form#refreshIdempotencyKey pageshow@window->transaction-form#refreshIdempotencyKeyIfPersisted",
         transaction_form_exchange_rate_url_value: exchange_rate_path,
         transaction_form_account_currencies_value: account_currencies.to_json,
@@ -25,10 +25,16 @@
   <% end %>
 
   <section data-controller="transaction-type-tabs" data-action="transaction-type-tabs:change->transaction-form#onNatureChange">
-    <%= render "shared/transaction_type_tabs",
-               active_tab: nature == "inflow" ? "income" : "expense",
-               account_id: params[:account_id],
-               quick: quick %>
+    <% if quick %>
+      <%= render "transactions/quick_type_tabs",
+                 active_tab: nature == "inflow" ? "inflow" : "outflow",
+                 account_id: params[:account_id] %>
+    <% else %>
+      <%= render "shared/transaction_type_tabs",
+                 active_tab: nature == "inflow" ? "income" : "expense",
+                 account_id: params[:account_id],
+                 quick: quick %>
+    <% end %>
 
     <%= f.hidden_field :nature, value: nature, data: { "transaction-type-tabs-target": "natureField", "transaction-form-target": "natureField" } %>
     <%= f.hidden_field :entryable_type, value: "Transaction" %>
@@ -45,17 +51,26 @@
     <%= hidden_field_tag "entry[idempotency_key]", new_transaction_idempotency_key, data: { "transaction-form-target": "idempotencyKey" } %>
   </section>
 
-  <section class="space-y-3">
+  <% unless quick %>
+    <%= f.text_field :name,
+                     label: t(".description_optional"),
+                     placeholder: t(".description_placeholder"),
+                     required: false %>
+  <% end %>
+
+  <section class="space-y-3 <%= "min-h-[25rem] bg-container-inset px-4 py-8" if quick %>">
     <%= f.money_field :amount,
       label: t(".amount"),
       required: true,
       container_class: "money-field-wrapper",
+      label_class: ("sr-only" if quick),
+      input_class: ("border-0 bg-transparent text-center text-7xl font-light tabular-nums shadow-none" if quick),
       amount_data: { transaction_form_target: "amount", action: "input->transaction-form#onAmountChange" },
       currency_data: { transaction_form_target: "currency", action: "change->transaction-form#onCurrencyChange" } %>
 
     <% is_cashback_enabled = params.dig(:entry, :cashback_enabled) == "1" %>
     <% is_outflow = nature == "outflow" %>
-    <div class="space-y-2 <%= "hidden" unless is_outflow %>" data-transaction-form-target="cashbackSection">
+    <div class="space-y-2 <%= "hidden" unless is_outflow || !quick %>" data-transaction-form-target="cashbackSection" <%= "data-quick-entry-target=details" if quick %>>
       <div class="flex items-center justify-between py-1">
         <%= label_tag "entry_cashback_enabled", t(".cashback_label"), class: "text-sm font-medium text-secondary cursor-pointer" %>
         <%= render DS::Toggle.new(
@@ -118,25 +133,49 @@
     </div>
   </section>
 
-  <%= f.fields_for :entryable do |ef| %>
-    <%= render DS::CategorySelect.new(
-      form: ef,
-      categories: categories,
-      selected_id: ef.object.category_id,
-      blank_label: t(".category_prompt")
-    ) %>
-  <% end %>
+  <section class="space-y-3 <%= "grid grid-cols-2 gap-3 border-t border-primary pt-5" if quick %>">
+    <% account_field = capture do %>
+      <% if entry.account_id %>
+        <%= f.hidden_field :account_id, data: { transaction_form_target: "account" } %>
+      <% else %>
+        <%= f.collection_select :account_id, manual_accounts, :id, :name, { prompt: t(".account_prompt"), label: t(".account"), selected: Current.user.default_account_for_transactions&.id, variant: :logo, searchable: true }, required: true, class: "form-field__input text-ellipsis", data: { transaction_form_target: "account", action: "change->transaction-form#onAccountChange" } %>
+      <% end %>
+    <% end %>
+    <% category_field = capture do %>
+      <%= f.fields_for :entryable do |ef| %>
+        <%= render DS::CategorySelect.new(
+          form: ef,
+          categories: categories,
+          selected_id: ef.object.category_id,
+          blank_label: t(".category_prompt")
+        ) %>
+      <% end %>
+    <% end %>
+    <% date_field = capture do %>
+      <%= f.date_field :date,
+            label: t(".date"),
+            required: true,
+            min: Entry.min_supported_date,
+            max: Date.current,
+            value: f.object.date || Date.current,
+            data: { transaction_form_target: "date", action: "change->transaction-form#checkCurrencyDifference" } %>
+    <% end %>
 
-  <% if entry.account_id %>
-    <%= f.hidden_field :account_id, data: { transaction_form_target: "account" } %>
-  <% else %>
-    <%= f.collection_select :account_id, manual_accounts, :id, :name, { prompt: t(".account_prompt"), label: t(".account"), selected: Current.user.default_account_for_transactions&.id, variant: :logo, searchable: true }, required: true, class: "form-field__input text-ellipsis", data: { transaction_form_target: "account", action: "change->transaction-form#onAccountChange" } %>
-  <% end %>
+    <% if quick %>
+      <%= safe_join([ account_field, category_field ]) %>
+    <% else %>
+      <div class="grid grid-cols-2 gap-3">
+        <%= account_field %>
+        <%= date_field %>
+      </div>
+      <%= category_field %>
+    <% end %>
+  </section>
 
   <% round_up_account = nature == "outflow" && entry.account_id.present? ? round_up_accounts[entry.account_id.to_s] : nil %>
   <% round_up_param = params.dig(:entry, :round_up_enabled) %>
   <% round_up_checked = round_up_param.nil? ? true : round_up_param.to_s.in?(%w[1 true on]) %>
-  <section class="<%= "hidden" unless round_up_account %>" data-transaction-form-target="roundUpSection">
+  <section class="<%= "hidden" unless round_up_account || !quick %>" data-transaction-form-target="roundUpSection" <%= "data-quick-entry-target=details" if quick %>>
     <div class="flex items-center justify-between gap-3 rounded-lg bg-container-inset px-3 py-2">
       <div class="min-w-0 space-y-0.5">
         <p class="text-sm font-medium text-primary"><%= t(".round_up_label") %></p>
@@ -159,28 +198,64 @@
     </div>
   </section>
 
-  <%= f.date_field :date,
-    label: t(".date"),
-    required: true,
-    min: Entry.min_supported_date,
-    max: Date.current,
-    value: f.object.date || Date.current,
-    data: { transaction_form_target: "date", action: "change->transaction-form#checkCurrencyDifference" } %>
-
-  <%= f.fields_for :entryable do |ef| %>
-    <%= render DS::TagSelect.new(
-      form: ef,
-      tags: tags,
-      selected_ids: ef.object.tag_ids
-    ) %>
+  <% if quick %>
+    <div class="hidden" data-quick-entry-target="details">
+      <%= date_field %>
+    </div>
   <% end %>
 
-  <%= render DS::Disclosure.new(title: t(".details")) do %>
-    <section class="space-y-2">
-      <%= f.text_field :name,
-                       label: t(".description_optional"),
-                       placeholder: t(".description_placeholder"),
-                       required: false %>
+  <% if quick %>
+    <div class="hidden" data-quick-entry-target="details">
+      <%= f.fields_for :entryable do |ef| %>
+        <%= render DS::TagSelect.new(
+          form: ef,
+          tags: tags,
+          selected_ids: ef.object.tag_ids
+        ) %>
+      <% end %>
+    </div>
+  <% else %>
+    <%= f.fields_for :entryable do |ef| %>
+      <%= render DS::TagChips.new(form: ef, tags: tags) %>
+    <% end %>
+  <% end %>
+
+  <% if quick %>
+    <div class="border-y border-primary py-3 text-center">
+      <span class="text-sm font-medium uppercase text-secondary"><%= t(".templates") %></span>
+    </div>
+
+    <div class="grid grid-cols-[minmax(0,1fr)_5rem] border-b border-primary bg-container">
+      <div class="grid grid-cols-3">
+        <% [ "7", "8", "9", "4", "5", "6", "1", "2", "3", "decimal", "0", "backspace" ].each do |key| %>
+          <% label = { "decimal" => ",", "backspace" => "←" }.fetch(key, key) %>
+          <button type="button"
+                  class="flex aspect-square items-center justify-center text-3xl font-light text-primary hover:bg-container-hover focus-ring"
+                  data-key="<%= key %>"
+                  data-action="click->quick-entry#keypad">
+            <%= label %>
+          </button>
+        <% end %>
+      </div>
+      <div class="flex flex-col border-l border-primary">
+        <% [ "divide", "x", "minus", "plus", "equal" ].each do |operation| %>
+          <span class="flex flex-1 items-center justify-center text-xl text-secondary" aria-hidden="true">
+            <%= { "divide" => "÷", "x" => "×", "minus" => "−", "plus" => "+", "equal" => "=" }.fetch(operation) %>
+          </span>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="<%= "hidden" if quick %>" <%= "data-quick-entry-target=details" if quick %>>
+    <%= render DS::Disclosure.new(title: t(".details"), open: quick) do %>
+      <section class="space-y-2">
+      <% if quick %>
+        <%= f.text_field :name,
+                         label: t(".description_optional"),
+                         placeholder: t(".description_placeholder"),
+                         required: false %>
+      <% end %>
 
       <%= f.fields_for :entryable do |ef| %>
         <%= render DS::MerchantSelect.new(
@@ -239,10 +314,23 @@
         exchange_rate_label: t("shared.exchange_rate_tabs.exchange_rate"),
         convert_input: convert_input,
         destination_input: destination_input %>
-    </section>
+      </section>
+    <% end %>
+  </div>
+
+  <% if quick %>
+    <button type="button"
+            class="fixed right-0 top-1/2 z-20 flex h-16 w-9 -translate-y-1/2 items-center justify-center rounded-l-xl border border-r-0 border-primary bg-container text-primary shadow-border-lg focus-ring"
+            data-quick-entry-target="toggle"
+            data-action="click->quick-entry#toggle"
+            aria-controls="quick-entry-details"
+            aria-expanded="false">
+      <%= icon "chevron-left" %>
+      <span class="sr-only"><%= t(".details") %></span>
+    </button>
   <% end %>
 
-  <section class="sticky bottom-0 z-10 bg-container pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+  <section id="quick-entry-details" class="<%= "fixed inset-x-0 bottom-0 z-10 bg-container px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-border-lg" if quick %>">
     <%= f.submit t(".submit") %>
   </section>
 <% end %>

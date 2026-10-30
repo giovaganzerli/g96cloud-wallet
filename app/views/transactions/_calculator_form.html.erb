@@ -1,0 +1,134 @@
+<%# locals: (nature:, entry:, transfer:, account_currencies:, manual_accounts:, categories:, merchants:, tags:, round_up_accounts:, accounts:, from_account_id:) %>
+<% transferring = nature == "transfer" %>
+<% controller = transferring ? "transfer-form" : "transaction-form" %>
+<% model = transferring ? transfer : entry %>
+<% form_data = {
+  controller: "quick-entry #{controller}",
+  action: "input->quick-entry#updateSummary change->quick-entry#updateSummary submit->quick-entry#calculate invalid->quick-entry#revealInvalidField:capture turbo:before-cache@document->quick-entry#reset pageshow@window->quick-entry#restore dblclick->quick-entry#preventZoom touchstart->quick-entry#preventZoom:!passive touchmove->quick-entry#preventScroll:!passive gesturestart->quick-entry#preventZoom:!passive",
+  quick_entry_currencies_value: account_currencies.to_json,
+  "#{controller}_exchange_rate_url_value": exchange_rate_path,
+  "#{controller}_account_currencies_value": account_currencies.to_json,
+  transaction_form_round_up_accounts_value: round_up_accounts.to_json,
+  transaction_form_round_up_preview_template_value: t("transactions.form.round_up_preview", amount: "%{amount}", destination: "%{destination}", multiplier: "%{multiplier}")
+} %>
+
+<%= styled_form_with model: model, url: transferring ? transfers_path : transactions_path,
+      class: "flex h-full touch-pan-y flex-col overflow-clip overscroll-none bg-container", data: form_data do |f| %>
+  <template data-select-sheet-template>
+    <%= render DS::Dialog.new(auto_open: false, disable_frame: true, width: "expanded", content_class: "h-[85dvh]", data: { controller: "select-sheet", action: "close->select-sheet#closed" }) do |dialog| %>
+      <% dialog.with_header(title: t("transactions.quick_new.choose_option")) %>
+      <% dialog.with_body do %>
+        <div data-select-sheet-body data-quick-entry-scroll class="h-full min-h-0 overflow-y-auto overscroll-contain"></div>
+      <% end %>
+    <% end %>
+  </template>
+  <%= hidden_field_tag :quick_new, "1" %>
+  <% if transferring %>
+    <%= hidden_field_tag "transfer[idempotency_key]", quick_transfer_idempotency_key, data: { quick_entry_target: "idempotencyKey" } %>
+  <% else %>
+    <%= f.hidden_field :nature, value: nature, data: { transaction_form_target: "natureField" } %>
+    <%= f.hidden_field :entryable_type, value: "Transaction" %>
+    <%= hidden_field_tag "entry[idempotency_key]", new_transaction_idempotency_key, data: { quick_entry_target: "idempotencyKey" } %>
+  <% end %>
+
+  <div class="flex min-h-0 flex-1 overflow-clip">
+    <div class="flex h-full w-full shrink-0 transition-transform duration-300 motion-reduce:transition-none" data-quick-entry-target="track">
+      <section class="relative flex h-full w-full shrink-0 flex-col bg-surface" data-quick-entry-target="primary" aria-label="<%= t("transactions.quick_new.heading") %>">
+        <%= render "transactions/quick_type_tabs", active_tab: nature, account_id: entry.account_id || from_account_id %>
+
+        <div class="flex min-h-0 flex-1 flex-col bg-container-inset">
+          <div class="flex min-h-0 flex-1 items-center gap-3 px-5">
+            <span class="text-4xl font-light text-secondary" aria-hidden="true"><%= nature == "inflow" ? "+" : "−" %></span>
+            <%= f.label :amount, t("transactions.form.amount"), class: "sr-only" %>
+            <%= f.number_field :amount, inline: true, required: true, min: 0.00000001,
+                  step: "any", placeholder: "0", inputmode: "none", autocomplete: "off",
+                  class: "min-w-0 w-full appearance-none border-0 bg-transparent p-0 text-center text-7xl font-light tabular-nums text-primary shadow-none focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                  data: { controller: "fit-text", fit_text_maximum_value: 72, quick_entry_target: "amount", "#{controller}_target": "amount", action: "input->fit-text#fit input->#{controller}##{transferring ? "onSourceAmountChange" : "onAmountChange"}" } %>
+            <% if transferring %>
+              <span class="text-xl text-secondary" data-quick-entry-target="currency"><%= Current.family.currency %></span>
+            <% else %>
+              <div class="w-24 shrink-0 [&_.form-field]:border-0! [&_.form-field]:bg-transparent! [&_.form-field]:px-0! [&_.form-field]:shadow-none! [&_label]:sr-only [&_button]:bg-transparent! [&_button]:text-center!">
+                <%= render DS::Select.new(form: f, method: :currency,
+                      items: currency_picker_options_for_family(extra: entry.currency).map { |code| { value: code, label: code } },
+                      selected: entry.currency, searchable: true, label: t("transactions.quick_new.currency"),
+                      html_options: { data: { transaction_form_target: "currency", quick_entry_target: "currency", action: "change->transaction-form#onCurrencyChange" } }) %>
+              </div>
+            <% end %>
+          </div>
+
+          <div class="grid grid-cols-2 items-end gap-3 px-4 pb-4 [&_.form-field]:border-0! [&_.form-field]:bg-transparent! [&_.form-field]:px-0! [&_.form-field]:shadow-none! [&_.form-field>div]:gap-1 [&_.form-field>div]:p-0! [&_label]:m-0 [&_label]:text-center [&_button[aria-haspopup]]:flex [&_button[aria-haspopup]]:min-h-9 [&_button[aria-haspopup]]:items-center [&_button[aria-haspopup]]:justify-center [&_button[aria-haspopup]]:bg-transparent! [&_button[aria-haspopup]]:px-5! [&_button[aria-haspopup]]:text-center! [&_button[aria-haspopup]]:text-base [&_[data-category-select-target=selectionContainer]]:min-w-0 [&_[data-category-select-target=selectionContainer]]:truncate">
+            <% if transferring %>
+              <%= f.collection_select :from_account_id, accounts, :id, :name,
+                    { prompt: t("transactions.form.account_prompt"), label: t("transactions.form.account"), selected: from_account_id, searchable: true },
+                    required: true, data: { transfer_form_target: "fromAccount", action: "change->transfer-form#checkCurrencyDifference" } %>
+              <%= f.collection_select :to_account_id, accounts, :id, :name,
+                    { prompt: t("transfers.form.select_account"), label: t("transfers.form.to"), selected: params.dig(:transfer, :to_account_id), searchable: true },
+                    required: true, data: { transfer_form_target: "toAccount", action: "change->transfer-form#checkCurrencyDifference" } %>
+            <% else %>
+              <%= f.collection_select :account_id, manual_accounts, :id, :name,
+                    { prompt: t("transactions.form.account_prompt"), label: t("transactions.form.account"), selected: entry.account_id || Current.user.default_account_for_transactions&.id, searchable: true },
+                    required: true, data: { transaction_form_target: "account", action: "change->transaction-form#onAccountChange" } %>
+              <%= f.fields_for :entryable do |ef| %>
+                <%= render DS::CategorySelect.new(form: ef, categories: categories, selected_id: ef.object.category_id, blank_label: t("transactions.form.category_prompt")) %>
+              <% end %>
+            <% end %>
+          </div>
+
+          <%= render DS::Button.new(variant: :ghost, icon: "chevron-left",
+                class: "absolute right-0 top-1/3 h-24 w-8 rounded-l-full rounded-r-none bg-container shadow-border-lg",
+                aria: { label: t("transactions.form.details"), controls: "quick-entry-details", expanded: false },
+                data: { quick_entry_target: "toggle", action: "quick-entry#toggle" }) %>
+        </div>
+
+        <div class="shrink-0 border-y border-primary bg-container-inset-hover py-3 text-center text-sm font-medium uppercase text-secondary">
+          <%= t("transactions.form.templates") %>
+        </div>
+
+        <%= render "transactions/calculator_keypad" %>
+      </section>
+
+      <section id="quick-entry-details" class="flex h-full w-full shrink-0 flex-col bg-container" data-quick-entry-target="details" inert>
+        <header class="flex shrink-0 items-center justify-between border-b border-primary bg-container-inset px-3 py-3">
+          <%= render DS::Button.new(variant: :icon, icon: "arrow-left", aria: { label: t("transactions.quick_new.back") }, data: { action: "quick-entry#toggle" }) %>
+          <p class="min-w-0 flex-1 px-2 text-center text-xl text-primary" data-controller="fit-text" data-fit-text-maximum-value="20" data-quick-entry-target="summary" aria-live="polite"></p>
+          <%= render DS::Button.new(variant: :icon, icon: "check", type: :submit, aria: { label: t("transactions.form.submit") }, data: { action: "quick-entry#calculate" }) %>
+        </header>
+        <div data-quick-entry-scroll class="min-h-0 flex-1 space-y-5 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-5 [&_.form-field]:rounded-none [&_.form-field]:border-0! [&_.form-field]:border-b! [&_.form-field]:border-tertiary [&_.form-field]:bg-transparent! [&_.form-field]:px-0! [&_.form-field]:shadow-none! [&_.form-field>div]:px-0! [&_label]:m-0 [&_label]:text-sm [&_input]:bg-transparent! [&_input]:px-0! [&_input]:text-base [&_textarea]:bg-transparent! [&_textarea]:px-0! [&_textarea]:text-base [&_button[aria-haspopup]]:bg-transparent! [&_button[aria-haspopup]]:pl-0! [&_button[aria-haspopup]]:text-base">
+          <%= render "shared/form_errors", model: model if model.errors.any? %>
+          <% unless transferring %>
+            <%= f.text_field :name, label: t("transactions.form.description"), placeholder: t("transactions.form.description_placeholder") %>
+            <%= render "transactions/quick_cashback" %>
+          <% end %>
+
+          <%= f.date_field :date, label: t("transactions.form.date"), required: true,
+                value: transferring ? (transfer.inflow_transaction&.entry&.date || Date.current) : (entry.date || Date.current),
+                min: Entry.min_supported_date, max: Date.current,
+                data: { "#{controller}_target": "date", action: "change->#{controller}#checkCurrencyDifference" } %>
+          <% if transferring %>
+            <%= render DS::TagChips.new(form: f, tags: tags) %>
+          <% else %>
+            <%= f.fields_for :entryable do |ef| %>
+              <%= render DS::TagChips.new(form: ef, tags: tags) %>
+              <%= render DS::MerchantSelect.new(form: ef, method: :merchant_id, merchants: merchants, selected_id: ef.object.merchant_id, include_blank: t("transactions.form.none"), label: t("transactions.form.merchant_label")) %>
+            <% end %>
+            <%= f.text_area :notes, label: t("transactions.form.note_label"), placeholder: t("transactions.form.note_placeholder"), rows: 3 %>
+            <section class="hidden" data-transaction-form-target="roundUpSection">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-sm text-primary"><%= t("transactions.form.round_up_label") %></p>
+                  <p class="text-xs text-secondary" data-transaction-form-target="roundUpPreview"></p>
+                </div>
+                <%= render DS::Toggle.new(id: "entry_round_up_enabled", name: "entry[round_up_enabled]", checked: params.dig(:entry, :round_up_enabled) != "0", data: { transaction_form_target: "roundUpToggle", action: "change->transaction-form#toggleRoundUp" }) %>
+              </div>
+            </section>
+          <% end %>
+          <%= render "transactions/quick_exchange_fields", form: f, transferring: transferring %>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer class="shrink-0 border-t border-primary bg-container px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+    <%= f.submit t(transferring ? "transfers.form.submit" : "transactions.form.submit"), data: { action: "quick-entry#calculate" } %>
+  </footer>
+<% end %>

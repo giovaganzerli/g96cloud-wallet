@@ -1,0 +1,20 @@
+<fieldset class="space-y-3">
+  <legend class="text-sm text-secondary"><%= helpers.t("transactions.form.tags_label") %></legend>
+  <div class="space-y-1">
+    <% tags.each_slice(3) do |row| %>
+      <div class="flex min-w-0 items-center gap-2">
+        <%= form.collection_check_boxes :tag_ids, row, :id, :name, include_hidden: false do |field| %>
+          <label class="relative flex h-11 min-w-0 max-w-full cursor-pointer items-center"
+                 style="--tag-color: <%= field.object.color.presence || Tag::UNCATEGORIZED_COLOR %>; flex-basis: <%= field.text.length + 4 %>ch;">
+            <%= field.check_box class: "peer absolute inset-0 z-10 m-0! h-full! w-full! cursor-pointer opacity-0!" %>
+            <span class="pointer-events-none flex h-8 w-full min-w-0 max-w-full items-center justify-center whitespace-nowrap rounded-full border border-secondary px-3 text-center text-sm text-[var(--tag-color)] bg-[color-mix(in_oklab,var(--tag-color)_10%,transparent)] peer-checked:border-[var(--tag-color)] peer-checked:bg-[color-mix(in_oklab,var(--tag-color)_25%,transparent)] peer-checked:ring-1 peer-checked:ring-[var(--tag-color)] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2"
+                  data-controller="fit-text">
+              <%= field.text %>
+            </span>
+          </label>
+        <% end %>
+      </div>
+    <% end %>
+    <%= hidden_field_tag "#{form.object_name}[tag_ids][]", "" %>
+  </div>
+</fieldset>

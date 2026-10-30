@@ -41,15 +41,7 @@ nav_sections = [
         { label: t(".system_health_label"), path: admin_system_health_path, icon: "heart-pulse", if: Current.user&.super_admin? }
       ]
     } : nil
-  ),
-  {
-    header: t(".other_section_title"),
-    items: [
-      { label: t(".guides_label"), path: settings_guides_path, icon: "book-open" },
-      { label: t(".whats_new_label"), path: changelog_path, icon: "box" },
-      { label: t(".feedback_label"), path: feedback_path, icon: "megaphone" }
-    ]
-  }
+  )
 ]
 %>
 

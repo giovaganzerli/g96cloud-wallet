@@ -243,7 +243,7 @@
         <%# Center action: opens the existing modal dialog (not the quick page),
             so the mobile bar keeps the familiar in-place form. %>
         <%= link_to new_transaction_path,
-              class: "relative -mt-6 mb-1 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-inverse text-inverse shadow-border-lg focus-ring",
+              class: "relative -mt-8 mb-1 flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-4 border-surface bg-inverse text-inverse shadow-border-lg focus-ring",
               data: { turbo_frame: :modal },
               aria: { label: t("layouts.application.new_transaction") } do %>
           <%= icon "plus", size: "lg", color: "white" %>
@@ -257,14 +257,6 @@
       <% end %>
     <% end %>
 
-    <%# Assistant floats above the bar instead of taking a nav slot. %>
-    <% unless intro_mode || request.path == chats_path %>
-      <%= link_to chats_path,
-            class: "lg:hidden fixed right-4 bottom-[calc(5rem_+_env(safe-area-inset-bottom))] z-20 flex h-12 w-12 items-center justify-center rounded-full border border-primary bg-container text-primary shadow-border-lg focus-ring",
-            aria: { label: t("layouts.application.nav.assistant") } do %>
-        <%= icon "icon-assistant", custom: true, size: "lg", color: "current" %>
-      <% end %>
-    <% end %>
     <%# "What's new" release highlight: one centered popover per deployed
         release, shown on first interaction and tracked per account. %>
     <% unless intro_mode %>

@@ -40,7 +40,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_120000) do
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_account_round_up_settings_on_account_id", unique: true
     t.index ["destination_account_id"], name: "index_account_round_up_settings_on_destination_account_id"
-    t.check_constraint "multiplier IN (1, 2, 3, 4, 5, 10)", name: "account_round_up_settings_multiplier_check"
+    t.check_constraint "multiplier = ANY (ARRAY[1, 2, 3, 4, 5, 10])", name: "account_round_up_settings_multiplier_check"
   end
 
   create_table "account_shares", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1630,7 +1630,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_120000) do
     t.jsonb "variable_rate_schedule", default: {}, null: false
     t.check_constraint "down_payment IS NULL OR down_payment >= 0::numeric", name: "chk_loans_down_payment_non_negative"
     t.check_constraint "insurance_rate IS NULL OR insurance_rate >= 0::numeric", name: "chk_loans_insurance_rate_non_negative"
-    t.check_constraint "insurance_rate_type IS NULL OR (insurance_rate_type::text = ANY (ARRAY['level_term'::character varying, 'decreasing_life'::character varying]::text[]))", name: "chk_loans_insurance_rate_type"
+    t.check_constraint "insurance_rate_type IS NULL OR (insurance_rate_type::text = ANY (ARRAY['level_term'::character varying::text, 'decreasing_life'::character varying::text]))", name: "chk_loans_insurance_rate_type"
   end
 
   create_table "lunchflow_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -2982,8 +2982,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_120000) do
   end
 
   add_foreign_key "account_providers", "accounts", on_delete: :cascade
-  add_foreign_key "account_round_up_settings", "accounts", on_delete: :cascade
   add_foreign_key "account_round_up_settings", "accounts", column: "destination_account_id", on_delete: :nullify
+  add_foreign_key "account_round_up_settings", "accounts", on_delete: :cascade
   add_foreign_key "account_shares", "accounts"
   add_foreign_key "account_shares", "users"
   add_foreign_key "account_statements", "accounts", column: "suggested_account_id", on_delete: :nullify

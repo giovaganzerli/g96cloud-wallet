@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { autoUpdate } from "@floating-ui/dom"
+import { openSelectSheet, closeSelectSheet } from "utils/select_sheet"
 
 const FOCUSABLE_SELECTOR = [
   "a[href]",
@@ -36,6 +37,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    closeSelectSheet(this)
     document.removeEventListener("click", this.boundOutsideClick)
     document.removeEventListener("turbo:load", this.boundTurboLoad)
     this.element.removeEventListener("keydown", this.boundKeydown)
@@ -61,7 +63,7 @@ export default class extends Controller {
 
   focusTriggerWithoutReopening() {
     this.suppressReopenOnFocus = true
-    this.buttonTarget.focus()
+    this.buttonTarget.focus({ preventScroll: true })
     requestAnimationFrame(() => { this.suppressReopenOnFocus = false })
   }
 
@@ -107,7 +109,7 @@ export default class extends Controller {
     this.setMenuInert(false)
     this.menuTarget.classList.remove("hidden")
     this.buttonTarget.setAttribute("aria-expanded", "true")
-    this.startAutoUpdate()
+    if (!openSelectSheet(this)) this.startAutoUpdate()
     this.clearSearch()
     requestAnimationFrame(() => {
       this.menuTarget.classList.remove("opacity-0", "-translate-y-1", "pointer-events-none")
@@ -118,6 +120,7 @@ export default class extends Controller {
   }
 
   close() {
+    closeSelectSheet(this)
     this.isOpen = false
     this.stopAutoUpdate()
     this.menuTarget.classList.remove("opacity-100", "translate-y-0")
@@ -357,6 +360,7 @@ export default class extends Controller {
   }
 
   updatePosition() {
+    if (this.selectSheet) return
     if (!this.buttonTarget || !this.menuTarget || !this.isOpen) return
 
     const container = this.getScrollParent(this.element)

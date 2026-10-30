@@ -1,0 +1,19 @@
+<section class="space-y-3 <%= "hidden" if @quick_nature == "inflow" %>" data-transaction-form-target="cashbackSection">
+  <div class="flex items-center justify-between">
+    <%= label_tag "entry_cashback_enabled", t("transactions.form.cashback_label"), class: "text-sm text-secondary" %>
+    <%= render DS::Toggle.new(id: "entry_cashback_enabled", name: "entry[cashback_enabled]", checked: params.dig(:entry, :cashback_enabled) == "1", data: { transaction_form_target: "cashbackToggle", action: "change->transaction-form#toggleCashback" }) %>
+  </div>
+  <div class="space-y-3 border-b border-tertiary pb-4 <%= "hidden" unless params.dig(:entry, :cashback_enabled) == "1" %>" data-transaction-form-target="cashbackDetails">
+    <div class="flex min-w-0 flex-col gap-1">
+    <%= label_tag "entry_cashback_value", t("transactions.form.cashback_value_label"), class: "text-sm text-secondary" %>
+    <%= number_field_tag "entry[cashback_value]", params.dig(:entry, :cashback_value), id: "entry_cashback_value", min: "0.01", step: "any", autocomplete: "off", disabled: params.dig(:entry, :cashback_enabled) != "1", class: "form-field__input", data: { transaction_form_target: "cashbackValue", action: "input->transaction-form#onCashbackValueChange" } %>
+    </div>
+    <% cashback_type = params.dig(:entry, :cashback_type) == "percentage" ? "percentage" : "fixed" %>
+    <%= hidden_field_tag "entry[cashback_type]", cashback_type, data: { transaction_form_target: "cashbackType" } %>
+    <%= render DS::SegmentedControl.new(aria_label: t("transactions.form.cashback_type_label")) do |sc| %>
+      <% sc.with_segment(t("transactions.form.cashback_fixed"), active: cashback_type == "fixed", data: { transaction_form_target: "cashbackTypeFixed", type: "fixed", action: "transaction-form#selectCashbackType" }) %>
+      <% sc.with_segment("%", active: cashback_type == "percentage", data: { transaction_form_target: "cashbackTypePercentage", type: "percentage", action: "transaction-form#selectCashbackType" }) %>
+    <% end %>
+    <p class="hidden text-xs text-secondary" data-transaction-form-target="cashbackPreview"></p>
+  </div>
+</section>

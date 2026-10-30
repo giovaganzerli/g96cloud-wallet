@@ -1,0 +1,19 @@
+<div class="grid h-[42%] shrink-0 grid-cols-[minmax(0,1fr)_4rem] bg-container" aria-label="<%= t("transactions.quick_new.keypad") %>">
+  <div class="grid grid-cols-3 grid-rows-4">
+    <% %w[7 8 9 4 5 6 1 2 3 decimal 0 backspace].each do |key| %>
+      <%= render DS::Button.new(variant: :ghost,
+            text: key == "decimal" ? "," : (key == "backspace" ? nil : key),
+            icon: key == "backspace" ? "delete" : nil,
+            full_width: true,
+            class: "flex! h-full! w-full! items-center justify-center rounded-none p-0! [&>span]:text-3xl [&>span]:font-light",
+            aria: { label: t("transactions.quick_new.#{key}", default: key) },
+            data: { key: key, action: "quick-entry#keypad" }) %>
+    <% end %>
+  </div>
+  <div class="grid grid-rows-5 bg-container-inset">
+    <% { divide: "÷", multiply: "×", subtract: "−", add: "+", equals: "=" }.each do |key, symbol| %>
+      <%= render DS::Button.new(variant: :ghost, text: symbol, full_width: true, class: "h-full rounded-none [&>span]:text-2xl [&>span]:font-light",
+            aria: { label: t("transactions.quick_new.#{key}") }, data: { key: key, action: "quick-entry#keypad" }) %>
+    <% end %>
+  </div>
+</div>

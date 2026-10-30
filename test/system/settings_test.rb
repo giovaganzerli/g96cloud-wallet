@@ -18,10 +18,7 @@ class SettingsTest < ApplicationSystemTestCase
       [ "Categories", categories_path ],
       [ "Tags", tags_path ],
       [ "Rules", rules_path ],
-      [ "Merchants", family_merchants_path ],
-      [ "Guides", settings_guides_path ],
-      [ "What's new", changelog_path ],
-      [ "Feedback", feedback_path ]
+      [ "Merchants", family_merchants_path ]
     ]
 
     # Add admin settings if user is admin
@@ -80,6 +77,14 @@ class SettingsTest < ApplicationSystemTestCase
     Rails.application.config.app_mode.stubs(:self_hosted?).returns(true)
     open_settings_from_sidebar
     assert_no_selector "li", text: I18n.t("settings.settings_nav.payment_label")
+  end
+
+  test "does not show guides, release notes, or feedback in settings navigation" do
+    open_settings_from_sidebar
+
+    assert_no_link "Guides"
+    assert_no_link "What's new"
+    assert_no_link "Feedback"
   end
 
   # Escape is also the settings nav's hotkey back to the page before settings.

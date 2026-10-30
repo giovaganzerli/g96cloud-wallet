@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus";
+import { openSelectSheet, closeSelectSheet } from "utils/select_sheet";
 
 export default class extends Controller {
   static targets = [
@@ -38,6 +39,7 @@ export default class extends Controller {
     this.isOpen = true;
     this.buttonTarget.setAttribute("aria-expanded", "true");
     this.menuTarget.classList.remove("hidden");
+    openSelectSheet(this);
 
     this.searchTarget.value = "";
     this.filter();
@@ -46,9 +48,14 @@ export default class extends Controller {
   }
 
   close() {
+    closeSelectSheet(this);
     this.isOpen = false;
     this.buttonTarget.setAttribute("aria-expanded", "false");
     this.menuTarget.classList.add("hidden");
+  }
+
+  disconnect() {
+    closeSelectSheet(this);
   }
 
   filter() {

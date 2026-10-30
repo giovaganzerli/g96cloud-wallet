@@ -1,5 +1,6 @@
 import { autoUpdate } from "@floating-ui/dom";
 import { Controller } from "@hotwired/stimulus";
+import { openSelectSheet, closeSelectSheet } from "utils/select_sheet";
 
 export default class extends Controller {
   static targets = [
@@ -33,6 +34,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    closeSelectSheet(this);
     this.stopAutoUpdate();
     if (this.resizeObserver) this.resizeObserver.disconnect();
   }
@@ -50,7 +52,7 @@ export default class extends Controller {
     this.menuTarget.classList.remove("hidden");
     this.searchTarget.value = "";
     this.filter();
-    this.startAutoUpdate();
+    if (!openSelectSheet(this)) this.startAutoUpdate();
 
     requestAnimationFrame(() => {
       this.menuTarget.classList.remove(
@@ -65,6 +67,7 @@ export default class extends Controller {
   }
 
   close() {
+    closeSelectSheet(this);
     this.isOpen = false;
     this.stopAutoUpdate();
     this.buttonTarget.setAttribute("aria-expanded", "false");
@@ -307,6 +310,7 @@ export default class extends Controller {
   }
 
   updatePosition() {
+    if (this.selectSheet) return;
     if (!this.hasButtonTarget || !this.hasMenuTarget || !this.isOpen) return;
 
     const container = this.getScrollParent(this.element);

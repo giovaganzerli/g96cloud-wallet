@@ -4,6 +4,7 @@ class QuickTransactionsControllerTest < ActionDispatch::IntegrationTest
   setup do
     sign_in @user = users(:family_admin)
     @account = accounts(:depository)
+    @account.round_up_setting&.destroy!
     @destination = @user.family.accounts.create!(
       name: "Savings",
       balance: 0,
@@ -18,7 +19,7 @@ class QuickTransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "turbo-frame#quick-new-form"
     assert_select "form[action='#{transactions_path}']"
-    assert_select "nav", count: 0
+    assert_select "nav[data-viewport-target='bottomNav']", count: 0
     assert_select "#main"
     assert_includes response.body, I18n.t("transactions.quick_new.heading")
     assert_includes response.body, I18n.t("transactions.form.round_up_label")

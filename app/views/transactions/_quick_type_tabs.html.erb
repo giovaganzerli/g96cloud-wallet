@@ -1,0 +1,21 @@
+<%# locals: (active_tab:, account_id: nil) %>
+<% expense_path = quick_new_transaction_path(nature: "outflow", account_id: account_id) %>
+<% income_path = quick_new_transaction_path(nature: "inflow", account_id: account_id) %>
+<% transfer_path = quick_new_transaction_path(nature: "transfer", from_account_id: account_id) %>
+
+<nav class="grid grid-cols-3 border-b border-primary" aria-label="<%= t("shared.transaction_tabs.aria", default: "Transaction type") %>">
+  <% [
+       [ t("shared.transaction_tabs.income"), income_path, "inflow" ],
+       [ t("shared.transaction_tabs.expense"), expense_path, "outflow" ],
+       [ t("shared.transaction_tabs.transfer"), transfer_path, "transfer" ]
+     ].each do |label, path, nature| %>
+    <%= link_to label,
+          path,
+          class: class_names(
+            "flex min-h-18 items-center justify-center border-r border-primary px-2 text-center text-sm font-medium uppercase text-secondary focus-ring last:border-r-0",
+            ("bg-container text-primary" if active_tab == nature)
+          ),
+          data: { turbo_frame: "quick-new-form" },
+          "aria-current": ("true" if active_tab == nature) %>
+  <% end %>
+</nav>

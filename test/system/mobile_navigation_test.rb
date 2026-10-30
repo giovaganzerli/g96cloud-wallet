@@ -33,13 +33,29 @@ class MobileNavigationTest < ApplicationSystemTestCase
     refute_includes page.current_path, quick_new_transaction_path
   end
 
-  test "the assistant floats above the bar and steps aside on its own page" do
+  test "the center action protrudes above the mobile bar and the assistant is in the profile menu" do
     visit root_path
 
-    assert_selector "a[aria-label='#{I18n.t("layouts.application.nav.assistant")}']", visible: true
-
-    visit chats_path
-
+    within "nav[data-viewport-target='bottomNav']" do
+      assert_selector "a[href='#{new_transaction_path}'].h-16.-mt-8"
+    end
     assert_no_selector "a[aria-label='#{I18n.t("layouts.application.nav.assistant")}']"
+
+    within_testid "user-menu" do
+      find("[data-DS--popover-target='button']", match: :first).click
+
+      assert_link I18n.t("layouts.application.nav.assistant"), href: chats_path
+    end
+  end
+
+  test "the profile menu excludes contact and release links" do
+    visit root_path
+
+    within_testid "user-menu" do
+      find("[data-DS--popover-target='button']", match: :first).click
+
+      assert_no_link I18n.t("users.user_menu.changelog")
+      assert_no_link I18n.t("users.user_menu.contact")
+    end
   end
 end

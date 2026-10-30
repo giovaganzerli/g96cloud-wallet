@@ -51,6 +51,7 @@ it:
       note_placeholder: Inserisci una nota
       create_tag: Crea
       submit: Aggiungi transazione
+      templates: Modelli
       tag_search_placeholder: Cerca o crea etichetta
       tags_label: Etichette
       transfer: Bonifico
@@ -63,6 +64,18 @@ it:
     quick_new:
       title: Nuova transazione
       heading: NUOVA TRANSAZIONE
+      close: Chiudi inserimento rapido
+      back: Torna alla calcolatrice
+      currency: Valuta
+      keypad: Tastierino della calcolatrice
+      choose_option: Seleziona un’opzione
+      decimal: Separatore decimale
+      backspace: Cancella ultima cifra
+      divide: Dividi
+      multiply: Moltiplica
+      subtract: Sottrai
+      add: Somma
+      equals: Calcola risultato
     round_up:
       outflow_name: "Spiccioli verso %{destination}"
       inflow_name: "Spiccioli da %{source}"

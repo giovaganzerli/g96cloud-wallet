@@ -1,21 +1,10 @@
 <%# locals: (nature:, entry:, account_currencies:, manual_accounts:, categories:, merchants:, tags:, round_up_accounts:, transfer:, accounts:, from_account_id:) %>
 
-<%= turbo_frame_tag "quick-new-form" do %>
-  <% if nature == "transfer" %>
-    <%= render "transfers/form",
-               transfer: transfer,
-               quick: true,
-               idempotency_key: quick_transfer_idempotency_key %>
-  <% else %>
-    <%= render "transactions/form",
-               entry: entry,
-               account_currencies: account_currencies,
-               manual_accounts: manual_accounts,
-               categories: categories,
-               merchants: merchants,
-               tags: tags,
-               nature: nature,
-               round_up_accounts: round_up_accounts,
-               quick: true %>
-  <% end %>
+<%= turbo_frame_tag "quick-new-form", class: "block h-full" do %>
+  <%= render "transactions/calculator_form",
+             nature: nature, entry: entry, transfer: transfer,
+             account_currencies: account_currencies, manual_accounts: manual_accounts,
+             categories: categories, merchants: merchants, tags: tags,
+             round_up_accounts: round_up_accounts, accounts: accounts,
+             from_account_id: from_account_id %>
 <% end %>
