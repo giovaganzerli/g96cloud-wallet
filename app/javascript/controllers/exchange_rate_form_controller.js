@@ -239,6 +239,7 @@ export default class extends Controller {
     }
     if (this.hasExchangeRateContainerTarget) {
       this.exchangeRateContainerTarget.classList.remove("hidden");
+      this.revealExchangeRateDetails();
     }
 
     this.calculateConvertDestination();
@@ -254,6 +255,7 @@ export default class extends Controller {
     }
     if (this.hasExchangeRateContainerTarget) {
       this.exchangeRateContainerTarget.classList.remove("hidden");
+      this.revealExchangeRateDetails();
     }
 
     this.calculateConvertDestination();
@@ -286,6 +288,10 @@ export default class extends Controller {
 
     this.sourceCurrency = null;
     this.destinationCurrency = null;
+  }
+
+  revealExchangeRateDetails() {
+    this.exchangeRateContainerTarget.closest("details")?.setAttribute("open", "");
   }
 
   getExchangeRateContext() {
