@@ -5,7 +5,6 @@ en:
       label: Cashback
       hint: Automatically create cashback for eligible expenses.
       percentage_label: Percentage
-  depositories:
     edit:
       edit: Edit %{account}
     form:

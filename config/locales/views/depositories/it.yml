@@ -5,7 +5,6 @@ it:
       label: Cashback
       hint: Crea automaticamente il cashback per le uscite idonee.
       percentage_label: Percentuale
-  depositories:
     edit:
       edit: Modifica %{account}
     form:
