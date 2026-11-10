@@ -105,7 +105,6 @@ module QuickTransactionForm
         currency: account&.currency || Current.family.currency,
         entryable: Transaction.new
       )
-      entry.transaction.tag_ids = [ Current.user.travel_tag.id ] if Current.user.travel_tag
       entry
     end
 
