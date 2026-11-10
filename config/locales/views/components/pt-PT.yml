@@ -2,6 +2,7 @@
 pt-PT:
   UI:
     period_picker:
+      custom: "Intervalo personalizado"
       aria_label: "Período: %{period}"
     account:
       activity_feed:

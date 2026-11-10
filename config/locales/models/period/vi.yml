@@ -1,6 +1,12 @@
 ---
 vi:
   period:
+    chart:
+      day: "Ngày"
+      week: "Tuần"
+      month: "Tháng"
+      year: "Năm"
+      all: "Tất cả"
     last_day:
       label_short: "1N"
       label: "Hôm qua"

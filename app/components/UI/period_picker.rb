@@ -32,7 +32,7 @@ class UI::PeriodPicker < ApplicationComponent
 
   # [key, label] pairs, in menu order.
   def items
-    options || Period.all.map { |period| [ period.key, period.label_short ] }
+    options || Period.chart_period_options
   end
 
   def selected_label
@@ -44,8 +44,17 @@ class UI::PeriodPicker < ApplicationComponent
     # the chart is showing. Show the dates instead.
     return selected.label_range if custom_selected?
 
+    # The chart pickers offer four calendar granularities and name them in
+    # plain words, so the trigger says which window the chart shows.
+    return chart_label if options.nil?
+
     # A Period object knows its own label — no need to round-trip through PERIODS.
     selected.respond_to?(:label_short) ? selected.label_short : period_for(selected_key).label_short
+  end
+
+  # The label of the chart granularity a selected key belongs to.
+  def chart_label
+    Period.chart_period_options.to_h.fetch(Period.chart_period_key(selected_key))
   end
 
   # True when the selection is a Period with no preset key, i.e. an explicit
@@ -58,7 +67,13 @@ class UI::PeriodPicker < ApplicationComponent
   # narrows the menu to its own timescales offers no custom range, so the row
   # would be a choice that chart cannot show.
   def custom_row?
-    options.nil? && custom_selected?
+    options.nil?
+  end
+
+  # The custom range is entered in a modal: two date fields that apply the
+  # same `start_date`/`end_date` params a drag across the chart produces.
+  def custom_range_href
+    period_range_path(url: url, **extra_params)
   end
 
   def selected?(key)
@@ -67,19 +82,6 @@ class UI::PeriodPicker < ApplicationComponent
 
   def href_for(key)
     "#{url}?#{extra_params.merge(period: key).to_query}"
-  end
-
-  # Re-applies the range that is already active. Selecting it is a no-op by
-  # design — the row exists to *represent* the current selection in a
-  # single-select list, not to introduce a second way to set it.
-  #
-  # It stays a real link rather than an inert `aria-checked` row because the
-  # list is a `role="menu"` with roving tabindex: a non-link row would either
-  # drop out of arrow-key navigation or need bespoke keyboard handling to fake
-  # what an anchor gives for free. A checked radio you can focus, announce and
-  # re-activate for no effect is exactly how a radio group behaves anyway.
-  def custom_href
-    "#{url}?#{extra_params.merge(start_date: selected.start_date, end_date: selected.end_date).to_query}"
   end
 
   # Both pickers navigate a Turbo frame, and a frame navigation leaves the

@@ -83,6 +83,7 @@ ca:
           gains: Guanys / ROI
         vs_available_history: vs. historial disponible
     period_picker:
+      custom: "Interval personalitzat"
       aria_label: 'Període: %{period}'
   ds:
     alert:

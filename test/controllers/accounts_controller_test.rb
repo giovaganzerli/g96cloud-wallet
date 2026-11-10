@@ -179,7 +179,7 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
     # If the params were ignored, the user's default preset would render as the
     # checked option instead of the custom row.
     assert_select "a[role='menuitemradio'][aria-checked='true'][href*='period=']", count: 0
-    assert_select "a[role='menuitemradio'][aria-checked='true'][href*='start_date=']", count: 1
+    assert_select "a[role='menuitemradio'][aria-checked='true'][data-custom-range]", count: 1
   end
 
   test "show renders without missing translations" do

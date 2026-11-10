@@ -2,6 +2,7 @@
 en:
   UI:
     period_picker:
+      custom: "Custom range"
       aria_label: "Time period: %{period}"
     account:
       activity_feed:

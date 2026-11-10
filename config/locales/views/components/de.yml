@@ -164,6 +164,7 @@ de:
           total_value: Gesamtwert
         vs_available_history: vs. verfügbarer Verlauf
     period_picker:
+      custom: "Eigener Zeitraum"
       aria_label: 'Zeitraum: %{period}'
   ds:
     alert:

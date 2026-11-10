@@ -1,6 +1,12 @@
 ---
 ca:
   period:
+    chart:
+      day: "Dia"
+      week: "Setmana"
+      month: "Mes"
+      year: "Any"
+      all: "Tot"
     all_time:
       comparison_label: vs. inici
       label: Sempre

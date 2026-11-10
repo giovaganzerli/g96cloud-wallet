@@ -1,6 +1,12 @@
 ---
 pt-PT:
   period:
+    chart:
+      day: "Dia"
+      week: "Semana"
+      month: "Mês"
+      year: "Ano"
+      all: "Tudo"
     last_day:
       label_short: "1D"
       label: "Último dia"

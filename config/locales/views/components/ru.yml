@@ -82,6 +82,7 @@ ru:
           gains: Доходность / ROI
         vs_available_history: по сравнению с доступной историей
     period_picker:
+      custom: "Произвольный период"
       aria_label: "Период: %{period}"
   ds:
     alert:

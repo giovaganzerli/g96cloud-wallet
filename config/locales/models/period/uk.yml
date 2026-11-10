@@ -1,6 +1,12 @@
 ---
 uk:
   period:
+    chart:
+      day: "День"
+      week: "Тиждень"
+      month: "Місяць"
+      year: "Рік"
+      all: "Усе"
     last_day:
       label_short: "1Д"
       label: "Останній день"

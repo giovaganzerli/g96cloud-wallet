@@ -1,6 +1,12 @@
 ---
 tr:
   period:
+    chart:
+      day: "Gün"
+      week: "Hafta"
+      month: "Ay"
+      year: "Yıl"
+      all: "Tümü"
     all_time:
       comparison_label: Başlangıca göre
       label: Tüm Zamanlar

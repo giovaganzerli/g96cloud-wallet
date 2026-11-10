@@ -1,6 +1,12 @@
 ---
 ru:
   period:
+    chart:
+      day: "День"
+      week: "Неделя"
+      month: "Месяц"
+      year: "Год"
+      all: "Всё"
     all_time:
       comparison_label: по сравнению с началом
       label: Всё время

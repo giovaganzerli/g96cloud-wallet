@@ -1,6 +1,12 @@
 ---
 fr:
   period:
+    chart:
+      day: "Jour"
+      week: "Semaine"
+      month: "Mois"
+      year: "Année"
+      all: "Tout"
     all_time:
       comparison_label: vs début
       label: Tout le temps

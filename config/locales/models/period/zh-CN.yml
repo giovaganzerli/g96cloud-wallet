@@ -1,6 +1,12 @@
 ---
 zh-CN:
   period:
+    chart:
+      day: "天"
+      week: "周"
+      month: "月"
+      year: "年"
+      all: "全部"
     last_day:
       label_short: "1D"
       label: "最近 1 天"

@@ -1,6 +1,12 @@
 ---
 it:
   period:
+    chart:
+      day: "Giorno"
+      week: "Settimana"
+      month: "Mese"
+      year: "Anno"
+      all: "Tutto"
     last_day:
       label_short: "1G"
       label: "Ultimo giorno"

@@ -38,6 +38,10 @@ class PagesController < ApplicationController
       redirect_to chats_path and return
     end
 
+    # The dashboard's period picker offers four calendar granularities, so the
+    # sections below all read the snapped period and match the label shown.
+    @period = chart_period
+
     @balance_sheet = Current.family.balance_sheet
     @investment_statement = Current.family.investment_statement
     @accounts = Current.user.accessible_accounts.visible.with_attached_logo

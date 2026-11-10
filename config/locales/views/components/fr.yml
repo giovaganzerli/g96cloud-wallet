@@ -79,6 +79,7 @@ fr:
           total_value: Valeur totale
         vs_available_history: par rapport à l'historique disponible
     period_picker:
+      custom: "Période personnalisée"
       aria_label: 'Période : %{period}'
   ds:
     alert:

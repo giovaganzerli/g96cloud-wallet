@@ -82,6 +82,7 @@ tr:
           gains: Kazanç / ROI
         vs_available_history: mevcut geçmişe göre
     period_picker:
+      custom: "Özel aralık"
       aria_label: 'Zaman aralığı: %{period}'
   ds:
     alert:

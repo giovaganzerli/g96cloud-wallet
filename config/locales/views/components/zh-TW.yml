@@ -2,6 +2,7 @@
 zh-TW:
   UI:
     period_picker:
+      custom: "自訂區間"
       aria_label: 時間區間：%{period}
     account:
       activity_feed:

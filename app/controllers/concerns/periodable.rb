@@ -6,6 +6,15 @@ module Periodable
   end
 
   private
+    # The dashboard and the portfolio charts offer four calendar granularities,
+    # so the period they render is snapped onto one of them. A range the user
+    # dragged on a chart carries no key and is kept as it is.
+    def chart_period
+      return @period if @period.key.blank?
+
+      Period.chart_period_for(@period.key, Current.family)
+    end
+
     def set_period
       if params[:start_date].present? && params[:end_date].present?
         @period = custom_period_from_params

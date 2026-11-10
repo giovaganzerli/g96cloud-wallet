@@ -1,6 +1,12 @@
 ---
 hu:
   period:
+    chart:
+      day: "Nap"
+      week: "Hét"
+      month: "Hónap"
+      year: "Év"
+      all: "Összes"
     last_day:
       label_short: "1N"
       label: "Tegnap óta"

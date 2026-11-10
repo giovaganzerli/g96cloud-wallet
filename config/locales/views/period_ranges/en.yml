@@ -1,0 +1,9 @@
+---
+en:
+  period_ranges:
+    new:
+      title: Custom range
+      subtitle: Pick the first and last day the chart covers.
+      start_date: Start date
+      end_date: End date
+      apply: Apply

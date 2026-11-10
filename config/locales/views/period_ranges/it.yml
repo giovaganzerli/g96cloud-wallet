@@ -1,0 +1,9 @@
+---
+it:
+  period_ranges:
+    new:
+      title: Intervallo personalizzato
+      subtitle: Scegli il primo e l'ultimo giorno coperti dal grafico.
+      start_date: Data di inizio
+      end_date: Data di fine
+      apply: Applica

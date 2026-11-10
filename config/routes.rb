@@ -995,6 +995,10 @@ Rails.application.routes.draw do
   get "manifest" => "pwa#manifest", as: :pwa_manifest, defaults: { format: :json }
   get "quick-manifest" => "pwa#quick_manifest", as: :quick_pwa_manifest, defaults: { format: :json }
 
+  # The modal that picks a custom date range for a chart, reached from the
+  # period picker.
+  get "period_range" => "period_ranges#new", as: :period_range
+
   get "imports/:import_id/upload/sample_csv", to: "import/uploads#sample_csv", as: :import_upload_sample_csv
 
   privacy_url = ENV["LEGAL_PRIVACY_URL"].presence

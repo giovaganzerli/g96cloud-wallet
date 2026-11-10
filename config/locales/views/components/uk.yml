@@ -2,6 +2,7 @@
 uk:
   UI:
     period_picker:
+      custom: "Довільний період"
       aria_label: "Період часу: %{period}"
     account:
       activity_feed:

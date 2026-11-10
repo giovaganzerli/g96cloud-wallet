@@ -1,6 +1,12 @@
 ---
 de:
   period:
+    chart:
+      day: "Tag"
+      week: "Woche"
+      month: "Monat"
+      year: "Jahr"
+      all: "Alles"
     all_time:
       comparison_label: vs. Beginn
       label: Gesamter Zeitraum

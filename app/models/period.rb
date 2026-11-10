@@ -94,9 +94,49 @@ class Period
     }
   }
 
+  # The portfolio and dashboard charts offer four calendar granularities plus
+  # the whole history. Their labels are the plain names of those windows, so a
+  # chart always shows what its picker says it shows.
+  CHART_PERIODS = {
+    "last_day" => "day",
+    "current_week" => "week",
+    "current_month" => "month",
+    "current_year" => "year",
+    "all_time" => "all"
+  }.freeze
+
   class << self
     def valid_key?(key)
       PERIODS.key?(key)
+    end
+
+    # Snaps a period key onto one of the four chart granularities. A default
+    # period saved before the picker was simplified still resolves to a window
+    # the picker can name, so the label and the data never disagree.
+    def chart_period_key(key)
+      key = key.to_s
+      return key if CHART_PERIODS.key?(key)
+
+      case key
+      when "last_7_days", "last_week" then "current_week"
+      when "last_30_days", "last_month" then "current_month"
+      when "last_365_days", "last_5_years", "last_10_years" then "current_year"
+      else "current_month"
+      end
+    end
+
+    # The period a chart renders for a given key, honouring a family's custom
+    # month start when the snapshot lands on the current month.
+    def chart_period_for(key, family = nil)
+      snapped = chart_period_key(key)
+      return current_month_for(family) if snapped == "current_month"
+
+      from_key(snapped)
+    end
+
+    # [key, label] pairs for the chart pickers, in menu order.
+    def chart_period_options
+      CHART_PERIODS.map { |key, label_key| [ key, I18n.t("period.chart.#{label_key}") ] }
     end
 
     def from_key(key)

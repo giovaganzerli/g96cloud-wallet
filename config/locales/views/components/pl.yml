@@ -85,6 +85,7 @@ pl:
           total_value: Wartość całkowita
         vs_available_history: względem dostępnej historii
     period_picker:
+      custom: "Własny zakres"
       aria_label: 'Okres: %{period}'
   ds:
     alert:

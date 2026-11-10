@@ -1,11 +1,11 @@
 require "test_helper"
 
 class UI::PeriodPickerTest < ViewComponent::TestCase
-  test "renders one menuitemradio link per period, all carrying the period param and target frame" do
-    render_inline(UI::PeriodPicker.new(selected: "last_30_days", url: "/", frame: "dashboard_sections"))
+  test "renders one menuitemradio link per chart period, all carrying the period param and target frame" do
+    render_inline(UI::PeriodPicker.new(selected: "current_month", url: "/", frame: "dashboard_sections"))
 
-    links = page.all("a[role='menuitemradio']")
-    assert_equal Period.all.size, links.size
+    links = page.all("a[role='menuitemradio']:not([data-custom-range])")
+    assert_equal Period.chart_period_options.size, links.size
 
     links.each do |link|
       assert_match(/period=/, link[:href])
@@ -13,36 +13,47 @@ class UI::PeriodPickerTest < ViewComponent::TestCase
     end
   end
 
+  test "offers the calendar granularities and the whole history with plain names" do
+    render_inline(UI::PeriodPicker.new(selected: "current_month", url: "/"))
+
+    rendered = page.all("a[role='menuitemradio']:not([data-custom-range])").map { |link| [ link[:href][/period=(\w+)/, 1], link.text.strip ] }
+    assert_equal [ [ "last_day", "Day" ], [ "current_week", "Week" ], [ "current_month", "Month" ], [ "current_year", "Year" ], [ "all_time", "All" ] ], rendered
+  end
+
   test "marks the selected period with aria-checked and a check glyph" do
-    render_inline(UI::PeriodPicker.new(selected: "last_90_days", url: "/", frame: "dashboard_sections"))
+    render_inline(UI::PeriodPicker.new(selected: "current_year", url: "/", frame: "dashboard_sections"))
 
     selected = page.all("a[role='menuitemradio'][aria-checked='true']")
     assert_equal 1, selected.size
-    assert_match(/period=last_90_days/, selected.first[:href])
+    assert_match(/period=current_year/, selected.first[:href])
     # Check icon (svg) renders inside the selected item only.
     assert_selector "a[aria-checked='true'] svg"
   end
 
-  test "trigger button shows the selected period's short label" do
-    render_inline(UI::PeriodPicker.new(selected: "last_30_days", url: "/"))
+  test "trigger button shows the selected granularity's name" do
+    render_inline(UI::PeriodPicker.new(selected: "current_month", url: "/"))
 
-    assert_text Period.from_key("last_30_days").label_short
+    assert_text "Month"
   end
 
   test "trigger accessible name announces the selected period" do
-    render_inline(UI::PeriodPicker.new(selected: "last_90_days", url: "/"))
+    render_inline(UI::PeriodPicker.new(selected: "current_year", url: "/"))
 
-    label = Period.from_key("last_90_days").label_short
-    assert_selector "button[aria-label='Time period: #{label}']"
+    assert_selector "button[aria-label='Time period: Year']"
   end
 
   test "trigger accessible name follows the locale" do
     I18n.with_locale(:de) do
-      render_inline(UI::PeriodPicker.new(selected: "last_90_days", url: "/"))
+      render_inline(UI::PeriodPicker.new(selected: "current_year", url: "/"))
 
-      label = Period.from_key("last_90_days").label_short
-      assert_selector "button[aria-label='Zeitraum: #{label}']"
+      assert_selector "button[aria-label='Zeitraum: Jahr']"
     end
+  end
+
+  test "a period saved before the picker was simplified names the granularity it falls into" do
+    render_inline(UI::PeriodPicker.new(selected: "last_7_days", url: "/"))
+
+    assert_text "Week"
   end
 
   test "extra_params are merged into every option href" do
@@ -59,9 +70,9 @@ class UI::PeriodPickerTest < ViewComponent::TestCase
   end
 
   test "accepts a Period object as selected" do
-    render_inline(UI::PeriodPicker.new(selected: Period.last_7_days, url: "/"))
+    render_inline(UI::PeriodPicker.new(selected: Period.current_month, url: "/"))
 
-    assert_text Period.from_key("last_7_days").label_short
+    assert_text "Month"
     assert_equal 1, page.all("a[aria-checked='true']").size
   end
 
@@ -79,26 +90,39 @@ class UI::PeriodPickerTest < ViewComponent::TestCase
     render_inline(UI::PeriodPicker.new(selected: custom_period, url: "/"))
 
     links = page.all("a[role='menuitemradio']")
-    assert_equal Period.all.size + 1, links.size
+    assert_equal Period.chart_period_options.size + 1, links.size
     assert_equal custom_period.label_short, links.last.text.strip
 
     checked = page.all("a[role='menuitemradio'][aria-checked='true']")
     assert_equal 1, checked.size
-    # Round-trips the active range, so selecting it re-applies rather than clears.
-    assert_match(/start_date=#{custom_period.start_date}/, checked.first[:href])
-    assert_match(/end_date=#{custom_period.end_date}/, checked.first[:href])
+    # The row opens the modal that edits the range, so it carries the target
+    # path rather than the range itself.
+    assert_match(/period_range/, checked.first[:href])
   end
 
-  test "a preset selection renders no custom row" do
-    render_inline(UI::PeriodPicker.new(selected: Period.last_30_days, url: "/"))
+  test "the custom row opens the range dialog and is offered without a custom range" do
+    render_inline(UI::PeriodPicker.new(selected: Period.current_month, url: "/accounts/abc"))
 
-    assert_equal Period.all.size, page.all("a[role='menuitemradio']").size
+    custom_row = page.all("a[role='menuitemradio']").last
+
+    assert_equal "Custom range", custom_row.text.strip
+    assert_match(/period_range/, custom_row[:href])
+    assert_match(/url=%2Faccounts%2Fabc/, custom_row[:href])
+    # The dialog is a modal frame, so the row does not navigate the chart frame.
+    assert_equal "modal", custom_row["data-turbo-frame"]
+  end
+
+  test "a preset selection renders the custom row unchecked" do
+    render_inline(UI::PeriodPicker.new(selected: Period.current_month, url: "/"))
+
+    assert_equal Period.chart_period_options.size + 1, page.all("a[role='menuitemradio']").size
+    assert_equal 1, page.all("a[role='menuitemradio'][aria-checked='true']").size
   end
 
   test "framed options advance the URL so a preset pick clears a stale custom range" do
-    render_inline(UI::PeriodPicker.new(selected: Period.last_30_days, url: "/", frame: "dashboard_sections"))
+    render_inline(UI::PeriodPicker.new(selected: Period.current_month, url: "/", frame: "dashboard_sections"))
 
-    links = page.all("a[role='menuitemradio'][aria-checked='false']")
+    links = page.all("a[role='menuitemradio'][aria-checked='false']:not([data-custom-range])")
     assert links.any?
     links.each { |link| assert_equal "advance", link["data-turbo-action"] }
   end
@@ -106,16 +130,16 @@ class UI::PeriodPickerTest < ViewComponent::TestCase
   test "options advance the URL without an explicit frame too" do
     # The account page renders its picker inside the account's own container
     # frame, so those links are frame navigations as well and need the same
-    # address-bar update.
-    render_inline(UI::PeriodPicker.new(selected: Period.last_30_days, url: "/"))
+    # address-bar update. The custom-range row opens a modal instead.
+    render_inline(UI::PeriodPicker.new(selected: Period.current_month, url: "/"))
 
-    links = page.all("a[role='menuitemradio'][aria-checked='false']")
+    links = page.all("a[role='menuitemradio'][aria-checked='false']:not([data-custom-range])")
     assert links.any?
     links.each { |link| assert_equal "advance", link["data-turbo-action"] }
   end
 
   test "re-picking the checked preset replaces instead of stacking a history entry" do
-    render_inline(UI::PeriodPicker.new(selected: Period.last_30_days, url: "/", frame: "dashboard_sections"))
+    render_inline(UI::PeriodPicker.new(selected: Period.current_month, url: "/", frame: "dashboard_sections"))
 
     checked = page.all("a[role='menuitemradio'][aria-checked='true']")
     assert_equal 1, checked.size
@@ -123,13 +147,12 @@ class UI::PeriodPickerTest < ViewComponent::TestCase
     assert_equal "replace", checked.first["data-turbo-action"]
   end
 
-  test "the custom row replaces so re-selecting the active range costs no history" do
+  test "leaving a custom range for a preset advances the URL" do
     custom_period = Period.custom(start_date: 15.days.ago.to_date, end_date: Date.current)
 
     render_inline(UI::PeriodPicker.new(selected: custom_period, url: "/"))
 
     links = page.all("a[role='menuitemradio']")
-    assert_equal "replace", links.last["data-turbo-action"]
     # Leaving the custom range for a preset is a real change, so it still advances
     # and stays reachable with Back — the drag-select that set it advanced too.
     assert_equal "advance", links.first["data-turbo-action"]

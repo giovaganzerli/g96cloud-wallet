@@ -1,6 +1,12 @@
 ---
 es:
   period:
+    chart:
+      day: "Día"
+      week: "Semana"
+      month: "Mes"
+      year: "Año"
+      all: "Todo"
     last_day:
       label_short: 1D
       label: Último día

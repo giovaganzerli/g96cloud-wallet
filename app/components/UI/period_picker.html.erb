@@ -27,16 +27,17 @@
   <% end %>
 
   <% if custom_row? %>
-    <%# Last, so the presets keep their positions. Without this row a custom
-        range leaves the list with nothing checked, which reads as "no selection"
-        and hides the fact that picking a preset is how you leave it. %>
+    <%# Always offered: it opens the dialog that picks the two dates. When a
+        custom range is already active the same row carries it and is the
+        checked one, so the list still shows exactly one selection and the way
+        out of a custom range stays visible. %>
     <% menu.with_item(
          variant: :link,
-         text: selected.label_short,
-         href: custom_href,
-         frame: frame,
-         selected: true,
-         data: { turbo_action: turbo_action_for(true) }
+         text: custom_selected? ? selected.label_short : t("UI.period_picker.custom"),
+         href: custom_range_href,
+         frame: :modal,
+         selected: custom_selected?,
+         data: { custom_range: true }
        ) %>
   <% end %>
 <% end %>

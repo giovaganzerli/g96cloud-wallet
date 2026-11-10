@@ -18,18 +18,18 @@ class PeriodableTest < ActionDispatch::IntegrationTest
     assert_select "button[aria-label='Time period: #{@custom_label}']"
   end
 
-  test "invalid start_date or end_date falls back to last 30 days" do
+  test "invalid start_date or end_date falls back to the current month" do
     get root_path, params: { start_date: "not-a-date", end_date: @end_date.to_s }
 
     assert_response :success
-    assert_select "button[aria-label='Time period: 30D']"
+    assert_select "button[aria-label='Time period: Month']"
   end
 
-  test "start_date and end_date range where start is after end falls back to last 30 days" do
+  test "start_date and end_date range where start is after end falls back to the current month" do
     get root_path, params: { start_date: @end_date.to_s, end_date: @start_date.to_s }
 
     assert_response :success
-    assert_select "button[aria-label='Time period: 30D']"
+    assert_select "button[aria-label='Time period: Month']"
   end
 
   test "start_date without end_date is ignored and the user's default period wins" do
@@ -38,7 +38,7 @@ class PeriodableTest < ActionDispatch::IntegrationTest
     get root_path, params: { start_date: @start_date.to_s }
 
     assert_response :success
-    assert_select "button[aria-label='Time period: #{Period.last_7_days.label_short}']"
+    assert_select "button[aria-label='Time period: Week']"
   end
 
   test "start_date and end_date do not persist as the user's default period" do

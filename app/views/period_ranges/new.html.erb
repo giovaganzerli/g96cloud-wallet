@@ -1,0 +1,28 @@
+<%= render DS::Dialog.new(width: "sm") do |dialog| %>
+  <% dialog.with_header(title: t(".title"), subtitle: t(".subtitle")) %>
+  <% dialog.with_body do %>
+    <%= styled_form_with url: @target_url, method: :get, data: { turbo_frame: :_top } do |f| %>
+      <div class="space-y-3">
+        <%= f.date_field :start_date,
+              label: t(".start_date"),
+              value: @start_date,
+              min: Entry.min_supported_date,
+              max: Date.current,
+              required: true,
+              autofocus: true %>
+        <%= f.date_field :end_date,
+              label: t(".end_date"),
+              value: @end_date,
+              min: Entry.min_supported_date,
+              max: Date.current,
+              required: true %>
+      </div>
+
+      <% @extra_params.each do |key, value| %>
+        <%= hidden_field_tag key, value %>
+      <% end %>
+
+      <%= render DS::Button.new(text: t(".apply"), type: :submit, full_width: true, class: "mt-4") %>
+    <% end %>
+  <% end %>
+<% end %>

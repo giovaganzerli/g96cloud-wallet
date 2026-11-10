@@ -114,6 +114,10 @@ class AccountsController < ApplicationController
     @loan_projection = @account.loan.payoff_projection(as_of: @as_of) if @account.accountable.is_a?(Loan)
     @loan_chart = loan_payoff_chart(@account, as_of: @as_of, period: @period, projection: @loan_projection) if chart_card_requested?
 
+    # The portfolio chart offers four calendar granularities, so the period it
+    # renders is snapped onto one of them. A loan chart keeps its own windows.
+    @chart_period = @loan_chart ? @period : chart_period
+
     per_page = safe_per_page(stored_per_page_default)
     store_per_page!(per_page) if params[:per_page].present?
 

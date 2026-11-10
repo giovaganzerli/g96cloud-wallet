@@ -161,6 +161,7 @@ zh-CN:
         notices: "通知：%{count}"
         view_data_quality: 查看数据质量详情
     period_picker:
+      custom: "自定义区间"
       aria_label: 时间范围：%{period}
   ds:
     alert:
