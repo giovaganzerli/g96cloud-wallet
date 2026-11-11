@@ -165,7 +165,7 @@ class Assistant::Function::GetBudget < Assistant::Function
     def shift_months(date, n)
       shifted = date >> n
       if family.uses_custom_month_start?
-        family.custom_month_start_for(shifted)
+        family.month_start_for(shifted)
       else
         shifted.beginning_of_month
       end

@@ -166,7 +166,7 @@ class Assistant::Function::GetIncomeStatement < Assistant::Function
 
       [].tap do |buckets|
         while cursor <= period.end_date
-          bucket_end = [ cursor.end_of_month, period.end_date ].min
+          bucket_end = [ family.month_end_for(cursor), period.end_date ].min
           buckets << Period.custom(start_date: cursor, end_date: bucket_end)
           cursor = bucket_end + 1.day
         end

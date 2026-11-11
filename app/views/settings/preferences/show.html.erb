@@ -40,6 +40,19 @@
             (1..28).map { |day| [localized_ordinal(day), day] },
             { label: t(".month_start_day"), hint: t(".month_start_day_hint") },
             { data: { auto_submit_form_target: "auto" } } %>
+        <%= family_form.collection_select :payday_tag_id,
+            @family.tags.alphabetically,
+            :id,
+            :name,
+            {
+              label: t(".payday_tag_label"),
+              hint: t(".payday_tag_hint"),
+              include_blank: t(".payday_tag_none")
+            },
+            { data: { auto_submit_form_target: "auto" } } %>
+        <% if @family.payday_anchored? %>
+          <%= render DS::Alert.new(message: t(".payday_active_message", range: month_range_label(@family)), variant: :info) %>
+        <% end %>
         <% if @user.family.uses_custom_month_start? %>
           <%= render DS::Alert.new(message: t(".month_start_day_warning"), variant: :warning) %>
         <% end %>

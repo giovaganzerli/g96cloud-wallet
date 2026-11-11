@@ -8,7 +8,7 @@ module Assistant::Function::MonthResolvable
       return (base || Date.current).beginning_of_month unless family.uses_custom_month_start?
 
       # Match Budget.param_to_date for explicit slugs so the input round-trips with the response.
-      base ? Date.new(base.year, base.month, family.month_start_day) : family.custom_month_start_for(Date.current)
+      base ? family.month_start_in(base.year, base.month) : family.custom_month_start_for(Date.current)
     end
 
     def parse_month(raw)

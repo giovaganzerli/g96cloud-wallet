@@ -90,7 +90,7 @@ class ReportsController < ApplicationController
 
   def picker
     @period_type = params[:period_type]&.to_sym || :monthly
-    @start_date = parse_date_param(:start_date) || Date.current.beginning_of_month
+    @start_date = parse_date_param(:start_date) || default_start_date
     render partial: "reports/period_picker", locals: {
       period_type: @period_type,
       start_date: @start_date
@@ -240,7 +240,7 @@ class ReportsController < ApplicationController
     def default_start_date
       case @period_type
       when :monthly
-        Date.current.beginning_of_month.to_date
+        Current.family.month_start_for(Date.current)
       when :quarterly
         Date.current.beginning_of_quarter.to_date
       when :ytd
@@ -250,22 +250,24 @@ class ReportsController < ApplicationController
       when :custom
         1.month.ago.to_date
       else
-        Date.current.beginning_of_month.to_date
+        Current.family.month_start_for(Date.current)
       end
     end
 
     def default_end_date
       case @period_type
-      when :monthly, :last_6_months
-        Date.current.end_of_month.to_date
+      when :monthly
+        Current.family.month_end_for(Date.current)
       when :quarterly
         Date.current.end_of_quarter.to_date
       when :ytd
         Date.current
+      when :last_6_months
+        Date.current.end_of_month.to_date
       when :custom
         Date.current
       else
-        Date.current.end_of_month.to_date
+        Current.family.month_end_for(Date.current)
       end
     end
 
@@ -311,9 +313,10 @@ class ReportsController < ApplicationController
 
     def calculate_budget_performance
       # Only calculate if we're looking at current month
-      return nil unless @period_type == :monthly && @start_date.beginning_of_month.to_date == Date.current.beginning_of_month.to_date
+      current_month_start = Current.family.month_start_for(Date.current)
+      return nil unless @period_type == :monthly && @start_date.to_date == current_month_start
 
-      budget = Budget.find_or_bootstrap(Current.family, start_date: @start_date.beginning_of_month.to_date, user: Current.user)
+      budget = Budget.find_or_bootstrap(Current.family, start_date: current_month_start, user: Current.user)
       return 0 if budget.nil? || budget.allocated_spending.zero?
 
       (budget.actual_spending / budget.allocated_spending * 100).round(1)
@@ -326,15 +329,13 @@ class ReportsController < ApplicationController
       trends = []
 
       # Generate list of months within the period
-      current_month = @start_date.beginning_of_month
-      end_of_period = @end_date.end_of_month
+      current_month = Current.family.month_start_for(@start_date)
+      end_of_period = Current.family.month_end_for(@end_date)
 
       while current_month <= end_of_period
         month_start = current_month
-        month_end = current_month.end_of_month
-
-        # Ensure we don't go beyond the end date
-        month_end = @end_date if month_end > @end_date
+        family_month_end = Current.family.month_end_for(month_start)
+        month_end = [ family_month_end, @end_date ].min
 
         period = Period.custom(start_date: month_start, end_date: month_end)
 
@@ -349,7 +350,7 @@ class ReportsController < ApplicationController
           net: income - expenses
         }
 
-        current_month = current_month.next_month
+        current_month = Current.family.month_start_for(family_month_end + 1.day)
       end
 
       trends
@@ -761,12 +762,12 @@ class ReportsController < ApplicationController
     def build_monthly_breakdown_for_export
       # Generate list of months in the period
       months = []
-      current_month = @start_date.beginning_of_month
-      end_of_period = @end_date.end_of_month
+      current_month = Current.family.month_start_for(@start_date)
+      end_of_period = Current.family.month_end_for(@end_date)
 
       while current_month <= end_of_period
         months << current_month
-        current_month = current_month.next_month
+        current_month = Current.family.month_start_for(Current.family.month_end_for(current_month) + 1.day)
       end
 
       # Get all transactions in the period
@@ -1166,11 +1167,12 @@ class ReportsController < ApplicationController
       # Called at the end of setup_report_data, so @start_date and @end_date are guaranteed to be set.
       case @period_type
       when :monthly
-        prev_start = @start_date.beginning_of_month - 1.month
-        prev_end   = prev_start.end_of_month
-        next_start = @start_date.beginning_of_month + 1.month
-        next_end   = next_start.end_of_month
-        at_latest  = @start_date.beginning_of_month >= Date.current.beginning_of_month
+        month_start = Current.family.month_start_for(@start_date)
+        prev_start = Current.family.month_start_for(month_start - 1.day)
+        prev_end   = Current.family.month_end_for(prev_start)
+        next_start = Current.family.month_start_for(Current.family.month_end_for(month_start) + 1.day)
+        next_end   = Current.family.month_end_for(next_start)
+        at_latest  = month_start >= Current.family.month_start_for(Date.current)
       when :quarterly
         prev_start = (@start_date.beginning_of_quarter - 1.day).beginning_of_quarter
         prev_end   = prev_start.end_of_quarter

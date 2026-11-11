@@ -135,6 +135,10 @@ it:
         month_start_day: Il mese budget inizia il
         month_start_day_hint: Imposta quando inizia il mese del budget (es. giorno di paga)
         month_start_day_warning: I tuoi budget e i calcoli MTD useranno questo giorno di inizio personalizzato invece del 1° di ogni mese.
+        payday_tag_label: Etichetta dello stipendio
+        payday_tag_hint: Etichetta le entrate che segnano il tuo stipendio. Il mese partirà da uno stipendio e finirà il giorno prima del successivo.
+        payday_tag_none: Nessuna etichetta stipendio
+        payday_active_message: "Il tuo mese segue lo stipendio: %{range}."
         translations_notice: Nota che stiamo ancora lavorando alle traduzioni per varie lingue.
         currencies_title: "Valute %{moniker}"
         currencies_subtitle: Scegli quali valute appaiono nei campi importo per il tuo %{moniker}

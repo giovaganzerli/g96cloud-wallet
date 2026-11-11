@@ -22,7 +22,12 @@ class Api::V1::CashFlowsController < Api::V1::BaseController
       unless month && month.day == 1 && month <= today
         return invalid_query("invalid_month", "month must be a non-future ISO first day (YYYY-MM-01)")
       end
-      period = Period.custom(start_date: month, end_date: [ month.end_of_month, today ].min)
+      # The family may start its months on the payday rather than on the 1st,
+      # so the period follows the family's month, not the calendar one.
+      period = Period.custom(
+        start_date: current_resource_owner.family.month_start_for(month),
+        end_date: [ current_resource_owner.family.month_end_for(month), today ].min
+      )
     end
 
     if params[:view] == "sankey"

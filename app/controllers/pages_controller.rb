@@ -456,8 +456,8 @@ class PagesController < ApplicationController
     end
 
     def money_flow_month_param
-      current_month = Date.current.beginning_of_month
-      month = Date.strptime(params[:money_flow_month], "%Y-%m-%d").beginning_of_month
+      current_month = Current.family.month_start_for(Date.current)
+      month = Current.family.month_start_for(Date.strptime(params[:money_flow_month], "%Y-%m-%d"))
       # Clamp future months: build_money_flow_data caps each bar's end_date at
       # Date.current, which would otherwise be earlier than a future month's
       # start_date and blow up Period.custom's date-range validation.
@@ -475,8 +475,8 @@ class PagesController < ApplicationController
     end
 
     def spending_trend_month_param
-      current_month = Date.current.beginning_of_month
-      month = Date.strptime(params[:spending_month], "%Y-%m-%d").beginning_of_month
+      current_month = Current.family.month_start_for(Date.current)
+      month = Current.family.month_start_for(Date.strptime(params[:spending_month], "%Y-%m-%d"))
       # Same clamp as money_flow: a future month's period would end before it
       # starts once capped at Date.current, which Period.custom rejects.
       month > current_month ? current_month : month
@@ -490,12 +490,12 @@ class PagesController < ApplicationController
     # same number of elapsed days; only the chart draws the previous month out
     # to its final day.
     def build_spending_trend_data(income_statement, selected_month)
-      month_start = selected_month.beginning_of_month
-      month_end = month_start.end_of_month
+      month_start = selected_month
+      month_end = Current.family.month_end_for(month_start)
       current_period = Period.custom(start_date: month_start, end_date: [ month_end, Date.current ].min)
 
-      previous_month_start = (month_start - 1.month).beginning_of_month
-      previous_period = Period.custom(start_date: previous_month_start, end_date: previous_month_start.end_of_month)
+      previous_month_start = Current.family.month_start_for(month_start - 1.month)
+      previous_period = Period.custom(start_date: previous_month_start, end_date: Current.family.month_end_for(previous_month_start))
 
       current_daily = income_statement.daily_expense_series(period: current_period).index_by(&:date)
       previous_daily = income_statement.daily_expense_series(period: previous_period).index_by(&:date)
@@ -505,14 +505,14 @@ class PagesController < ApplicationController
       # still ends at the full-month total without the axis rolling into
       # previous-month dates (e.g. a September view ends at "Sep 30", not
       # "Aug 31").
-      axis_days = month_end.day
+      axis_days = (month_end - month_start).to_i + 1
 
       current_series = cumulative_spending_series(current_period, current_daily)
       previous_header_series = cumulative_spending_series(previous_period, previous_daily)
       previous_series = fold_extra_days(previous_header_series, axis_days)
 
       current_total = current_series.last&.fetch(:value) || 0
-      comparison_days = if month_start == Date.current.beginning_of_month
+      comparison_days = if month_start == Current.family.month_start_for(Date.current)
         [ current_series.size, previous_header_series.size ].min
       else
         previous_header_series.size
@@ -599,7 +599,11 @@ class PagesController < ApplicationController
     end
 
     def build_money_flow_data(income_statement, selected_month, account_ids)
-      months = (MONEY_FLOW_CHART_MONTHS - 1).downto(0).map { |i| selected_month - i.months }
+      # Each bar is one month of the family's calendar: with a payday-anchored
+      # family a month starts on the payday and ends the day before the next.
+      months = (MONEY_FLOW_CHART_MONTHS - 1).downto(0).map do |i|
+        Current.family.month_start_for(selected_month - i.months)
+      end
 
       selected_period = nil
       selected_totals = nil
@@ -607,7 +611,8 @@ class PagesController < ApplicationController
       bars = months.map do |month_start|
         # Cap at today so an in-progress month (most commonly the current one)
         # doesn't report totals for its not-yet-arrived days.
-        end_date = [ month_start.end_of_month, Date.current ].min
+        month_end = Current.family.month_end_for(month_start)
+        end_date = [ month_end, Date.current ].min
         period = Period.custom(start_date: month_start, end_date: end_date)
         totals = income_statement.totals_for(period, account_ids: account_ids)
 
@@ -628,7 +633,7 @@ class PagesController < ApplicationController
           income: totals.income_money.amount.to_f.round(2),
           expense: totals.expense_money.amount.to_f.round(2),
           highlighted: month_start == selected_month,
-          partial: end_date < month_start.end_of_month
+          partial: end_date < month_end
         }
       end
 

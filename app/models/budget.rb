@@ -32,11 +32,11 @@ class Budget < ApplicationRecord
 
     def param_to_date(param, family: nil)
       base_date = Date.strptime(param, PARAM_DATE_FORMAT)
-      if family&.uses_custom_month_start?
-        Date.new(base_date.year, base_date.month, family.month_start_day)
-      else
-        base_date.beginning_of_month
-      end
+      return base_date.beginning_of_month if family.nil?
+
+      # The month's start, which for a payday-anchored family is the payday
+      # that opens the calendar month the param names.
+      family.month_start_in(base_date.year, base_date.month)
     end
 
     def budget_date_valid?(date, family:)
@@ -357,14 +357,14 @@ class Budget < ApplicationRecord
   end
 
   def previous_budget_param
-    previous_date = start_date - 1.month
+    previous_date = family.month_start_for(start_date - 1.day)
     return nil unless self.class.budget_date_valid?(previous_date, family: family)
 
     self.class.date_to_param(previous_date)
   end
 
   def next_budget_param
-    next_date = start_date + 1.month
+    next_date = family.month_start_for(family.month_end_for(start_date) + 1.day)
     return nil unless self.class.budget_date_valid?(next_date, family: family)
 
     self.class.date_to_param(next_date)

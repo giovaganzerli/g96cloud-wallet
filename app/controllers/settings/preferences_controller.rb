@@ -3,6 +3,7 @@ class Settings::PreferencesController < ApplicationController
 
   def show
     @user = Current.user
+    @family = Current.family
     @family_members = Current.family.users.where.not(id: @user.id).where(active: true)
     @budget_shares = @user.budget_shares_given.index_by(&:viewer_id)
   end

@@ -30,7 +30,7 @@
         <% end %>
 
         <% (0..11).each do |i| %>
-          <% month = Date.current.beginning_of_month - i.months %>
+          <% month = Current.family.month_start_for(Date.current - i.months) %>
           <% menu.with_item(
                variant: :link,
                text: I18n.l(month, format: :month_year).capitalize,

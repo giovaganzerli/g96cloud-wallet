@@ -187,6 +187,14 @@ module ApplicationHelper
     "#{currency.name} (#{currency.iso_code})"
   end
 
+  # The family's current month written out for the settings hint, e.g.
+  # "1 October 2026 – 27 November 2026".
+  def month_range_label(family)
+    period = family.current_custom_month_period
+
+    "#{I18n.l(period.start_date, format: :long)} – #{I18n.l(period.end_date, format: :long)}"
+  end
+
   def show_super_admin_bar?
     if params[:admin].present?
       cookies.permanent[:admin] = params[:admin]

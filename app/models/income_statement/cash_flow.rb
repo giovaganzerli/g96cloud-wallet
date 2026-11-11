@@ -5,22 +5,26 @@ class IncomeStatement::CashFlow
     raise ArgumentError, "month must be a non-future first day" unless month.day == 1 && month <= as_of
 
     @statement = statement
-    @month = month
+    @family = statement.family
+    @month = @family.month_start_for(month)
     @as_of = as_of
     @time_zone = time_zone
     @include_sankey = include_sankey
   end
 
   def as_json(*)
-    current_period = Period.custom(start_date: @month, end_date: [ @month.end_of_month, @as_of ].min)
-    previous_month = @month.prev_month
-    previous_period = Period.custom(start_date: previous_month, end_date: previous_month.end_of_month)
+    current_period = Period.custom(start_date: @month, end_date: [ @family.month_end_for(@month), @as_of ].min)
+    previous_month = @family.month_start_for(@month - 1.day)
+    previous_period = Period.custom(start_date: previous_month, end_date: @family.month_end_for(previous_month))
     totals = @statement.totals_for(current_period)
     income = totals.income_money.amount
     spending = totals.expense_money.amount
     current = cumulative_series(current_period)
     previous = cumulative_series(previous_period)
-    comparison_day = @month == @as_of.beginning_of_month ? [ @as_of.day, previous.size ].min : previous.size
+    # The elapsed days of the month in progress, so the comparison lands on the
+    # same day of the previous month.
+    elapsed_days = (@as_of - @month).to_i + 1
+    comparison_day = @month == @family.month_start_for(@as_of) ? [ elapsed_days, previous.size ].min : previous.size
     previous_total = previous.fetch(comparison_day - 1).fetch(:amount).to_d
     current_total = current.last.fetch(:amount).to_d
 

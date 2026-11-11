@@ -168,6 +168,15 @@ module InsightsHelper
   end
 
   private
+    # True when the period is exactly one of the family's months, so it can be
+    # named after that month rather than as a rolling window.
+    def month_aligned_period?(start_date, end_date)
+      family = Current.family
+      return start_date == start_date.beginning_of_month && end_date == start_date.end_of_month if family.nil?
+
+      start_date == family.month_start_for(start_date) && end_date == family.month_end_for(start_date)
+    end
+
     # "June" for month-aligned periods, "Next 30 days" / "Last 30 days" for
     # rolling windows, an explicit range otherwise; subject name (account,
     # merchant) for insights without a period.
@@ -185,7 +194,7 @@ module InsightsHelper
         t("insights.meta.next_n_days", count: days)
       elsif rolling_period_insight?(insight) && end_date >= Date.current - 1
         t("insights.meta.last_n_days", count: days)
-      elsif start_date == start_date.beginning_of_month && end_date == start_date.end_of_month
+      elsif month_aligned_period?(start_date, end_date)
         format = start_date.year == Date.current.year ? "%B" : "%B %Y"
         I18n.l(start_date, format: format)
       elsif start_date >= Date.current - 1

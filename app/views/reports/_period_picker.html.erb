@@ -38,10 +38,15 @@
           <% month = i + 1 %>
           <% date = Date.new(start_date.year, month, 1) %>
           <% if date <= Date.current %>
+            <%# The family's month that holds the middle of this calendar
+                month, so a payday-anchored family lands on the month they
+                think of as this one. %>
+            <% month_start = Current.family.month_start_for(date + 14.days) %>
+            <% month_end = Current.family.month_end_for(month_start) %>
             <%= render DS::Link.new(
               variant: date.month == start_date.month ? "secondary" : "ghost",
               text: month_name,
-              href: reports_path(period_type: :monthly, start_date: date, end_date: date.end_of_month),
+              href: reports_path(period_type: :monthly, start_date: month_start, end_date: month_end),
               full_width: true,
               frame: :_top
             ) %>

@@ -56,7 +56,7 @@ class BillsController < ApplicationController
     preload_allocation_sums(occurrences)
 
     today = Date.current
-    month_end = today.end_of_month
+    month_end = Current.family.month_end_for(today)
 
     open_occurrences, closed = occurrences.partition(&:scheduled?)
     active_open, @dormant = open_occurrences.partition { |occurrence| occurrence.recurring_transaction.active? }
@@ -74,7 +74,7 @@ class BillsController < ApplicationController
                   .map { |group| group.min_by(&:due_on) }
                   .sort_by(&:due_on)
 
-    @paid_this_month = closed.select { |occurrence| occurrence.paid? && occurrence.due_on >= today.beginning_of_month }
+    @paid_this_month = closed.select { |occurrence| occurrence.paid? && occurrence.due_on >= Current.family.month_start_for(today) }
                              .sort_by(&:due_on)
 
     compute_kpis(today, month_end)

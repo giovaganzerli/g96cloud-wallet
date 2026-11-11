@@ -44,6 +44,11 @@ class Family < ApplicationRecord
   CATEGORIZATION_PROVIDERS = %w[llm jev].freeze
   SHARING_DEFAULTS = %w[shared private].freeze
 
+  # How many paydays the family keeps in memory to derive month boundaries.
+  # Two years of paydays is far more than the month comparisons need, and it
+  # keeps the query bounded on long histories.
+  PAYDAY_HISTORY = 24
+
   has_many :users, dependent: :destroy
   has_many :accounts, dependent: :destroy
   has_many :invitations, dependent: :destroy
@@ -61,6 +66,9 @@ class Family < ApplicationRecord
   has_many :holdings, through: :accounts
 
   has_many :tags, dependent: :destroy
+  # The tag whose income transactions mark the family's payday. Nullified when
+  # the tag is deleted, so the family falls back to its fixed month start.
+  belongs_to :payday_tag, class_name: "Tag", optional: true
   has_many :categories, dependent: :destroy
   has_many :categorization_comparisons, dependent: :destroy
   has_many :merchants, dependent: :destroy, class_name: "FamilyMerchant"
@@ -166,6 +174,17 @@ class Family < ApplicationRecord
             numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 1 }
   validates :categorization_shadow_rate,
             numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 1 }
+
+  # The payday tag has to be one of this family's own tags: a tag from another
+  # family would never match a transaction here, and the family would silently
+  # fall back to its fixed month start.
+  validate :payday_tag_belongs_to_family
+  def payday_tag_belongs_to_family
+    return if payday_tag.blank?
+    return if payday_tag.family_id == id
+
+    errors.add(:payday_tag, :invalid)
+  end
 
   # Single definition of the ENV-over-column precedence, so the resolver and the
   # settings UI can never disagree about which provider is actually in force.
@@ -380,30 +399,144 @@ class Family < ApplicationRecord
   end
 
   def uses_custom_month_start?
-    month_start_day != 1
+    month_start_day != 1 || payday_anchored?
+  end
+
+  # The tag whose income transactions mark the family's payday. When it is set
+  # and at least one payday has been recorded, the month runs from one payday
+  # to the day before the next one instead of from the 1st to the last day.
+  #
+  # The boundaries follow the recorded dates rather than a fixed day of the
+  # month, so a payday on the 28th and one on the 31st both work and the month
+  # adapts by itself when the payday moves.
+  def payday_anchored?
+    payday_tag_id.present? && payday_dates.any?
+  end
+
+  # The dates the family's payday landed on, ascending.
+  #
+  # Only income counts: a tagged outflow is not a payday, and contributions and
+  # loan payments are recorded as negative amounts even though they are
+  # outflows. The window is bounded so a long history cannot turn every month
+  # calculation into an unbounded scan.
+  def payday_dates
+    return [] if payday_tag_id.blank?
+
+    @payday_dates ||= transactions
+      .joins(:tags, :entry)
+      .where(tags: { id: payday_tag_id })
+      .where("entries.amount < 0")
+      .where.not(kind: %w[investment_contribution loan_payment])
+      .order("entries.date ASC")
+      .limit(PAYDAY_HISTORY)
+      .pluck("entries.date")
+      .map(&:to_date)
+      .uniq
+  end
+
+  # The payday that starts the month containing `date`, or the payday before
+  # the first one recorded when the date precedes them all.
+  def payday_start_for(date)
+    paydays = payday_dates
+    paydays.select { |payday| payday <= date }.max || (paydays.min - 1.month)
+  end
+
+  # The payday that ends the month containing `date`, estimated one month
+  # ahead when the next one has not been recorded yet — the month in progress
+  # always has an end, even before its closing payday lands.
+  def payday_end_for(date)
+    start_date = payday_start_for(date)
+    recorded = payday_dates.select { |payday| payday > start_date }.min
+    (recorded || estimated_next_payday(start_date)) - 1.day
   end
 
   def custom_month_start_for(date)
-    if date.day >= month_start_day
-      Date.new(date.year, date.month, month_start_day)
-    else
-      previous_month = date - 1.month
-      Date.new(previous_month.year, previous_month.month, month_start_day)
-    end
+    return fixed_month_start_for(date) unless payday_anchored?
+
+    payday_start_for(date)
   end
 
   def custom_month_end_for(date)
-    start_date = custom_month_start_for(date)
-    next_month_start = start_date + 1.month
-    next_month_start - 1.day
+    return fixed_month_end_for(date) unless payday_anchored?
+
+    payday_end_for(date)
   end
 
+  # The month containing `date`, honouring the family's payday when it has one
+  # and the configured start day otherwise.
+  #
+  # Every monthly calculation goes through here, so they all agree on where a
+  # month begins and ends: a payday-anchored family sees the same month in the
+  # dashboard, the reports and the budgets.
+  def month_start_for(date)
+    return custom_month_start_for(date) if uses_custom_month_start?
+
+    date.to_date.beginning_of_month
+  end
+
+  def month_end_for(date)
+    return custom_month_end_for(date) if uses_custom_month_start?
+
+    date.to_date.end_of_month
+  end
+
+  # The month's start for a calendar month: the payday that opens it, or the
+  # configured fixed start day for a family that does not follow its payday.
+  # A month whose payday has not landed yet follows the pattern of the last
+  # one, so the budget navigation can reach the months still to come.
+  def month_start_in(year, month)
+    return Date.new(year, month, month_start_day) unless payday_anchored?
+
+    payday_dates.find { |payday| payday.year == year && payday.month == month } ||
+      estimated_payday_in(year, month)
+  end
+
+  # The month the payday falls in, as a period of its own.
   def current_custom_month_period
     start_date = custom_month_start_for(Date.current)
     end_date = custom_month_end_for(Date.current)
     Period.custom(start_date: start_date, end_date: end_date)
   end
 
+  private
+    # The month start when it is pinned to a fixed day of the month.
+    def fixed_month_start_for(date)
+      if date.day >= month_start_day
+        Date.new(date.year, date.month, month_start_day)
+      else
+        previous_month = date - 1.month
+        Date.new(previous_month.year, previous_month.month, month_start_day)
+      end
+    end
+
+    def fixed_month_end_for(date)
+      start_date = fixed_month_start_for(date)
+      next_month_start = start_date + 1.month
+      next_month_start - 1.day
+    end
+
+    # The same day of the month one month later, clamped to the last day of a
+    # shorter month: a payday on the 31st is followed by one on the 28th (or
+    # the 29th) in February.
+    def estimated_next_payday(date)
+      year = date.month == 12 ? date.year + 1 : date.year
+      month = date.month == 12 ? 1 : date.month + 1
+      last_day = Date.new(year, month, -1).day
+
+      Date.new(year, month, [ date.day, last_day ].min)
+    end
+
+    # The payday a calendar month still to come would have, following the last
+    # recorded payday's day of the month.
+    def estimated_payday_in(year, month)
+      last = payday_dates.max
+      months_ahead = (year - last.year) * 12 + (month - last.month)
+      return last if months_ahead <= 0
+
+      estimated_next_payday(last.advance(months: months_ahead - 1))
+    end
+
+  public
   def assigned_merchants
     merchant_ids = transactions.where.not(merchant_id: nil).pluck(:merchant_id).uniq
     Merchant.where(id: merchant_ids)

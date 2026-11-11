@@ -52,6 +52,11 @@ class PropertiesEditTest < ApplicationSystemTestCase
             /does not belong to the document|stale element reference/i,
           )
           next
+        rescue Capybara::ElementNotFound
+          # The morph re-rendered the page and closed the menu before the
+          # click landed, so "Edit" was not there to click. Same race as the
+          # detached-node case above, with a different symptom — retry.
+          next
         end
         return if has_field?("account_accountable_attributes_subtype", wait: 2)
       end
