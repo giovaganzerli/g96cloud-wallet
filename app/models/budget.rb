@@ -90,9 +90,12 @@ class Budget < ApplicationRecord
     end
 
     private
+      # The bounds the budget navigation may reach, in the family's own month
+      # so a payday-anchored family does not see a month that starts earlier
+      # than the rest of its figures.
       def oldest_valid_budget_date(family)
-        two_years_ago = 2.years.ago.beginning_of_month
-        oldest_entry_date = family.oldest_entry_date.beginning_of_month
+        two_years_ago = family.month_start_for(2.years.ago.to_date)
+        oldest_entry_date = family.month_start_for(family.oldest_entry_date)
         [ two_years_ago, oldest_entry_date ].min
       end
 
@@ -100,7 +103,7 @@ class Budget < ApplicationRecord
         if family.uses_custom_month_start?
           family.current_custom_month_period.start_date + 2.years
         else
-          Date.current.beginning_of_month + 2.years
+          family.month_start_for(Date.current) + 2.years
         end
       end
   end
