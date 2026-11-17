@@ -55,7 +55,7 @@ class PagesController < ApplicationController
     net_totals = income_statement.net_category_totals(period: @period)
 
     @cashflow_sankey_data = build_cashflow_sankey_data(net_totals, income_totals, expense_totals, family_currency)
-    @outflows_data = build_outflows_donut_data(net_totals)
+    @outflows_data = build_outflows_donut_data(net_totals, income_totals, expense_totals)
     # Preview-gated: skip the query outright rather than loading rows the
     # section won't be built from.
     @feed_insights = preview_features_enabled? ? Current.family.insights.visible.ordered.limit(Insight::FEED_LIMIT) : Insight.none
@@ -431,28 +431,74 @@ class PagesController < ApplicationController
       end
     end
 
-    def build_outflows_donut_data(net_totals)
+    def build_outflows_donut_data(net_totals, income_totals, expense_totals)
       currency_symbol = Money::Currency.new(net_totals.currency).symbol
-      total = net_totals.total_net_expense
+      subcategories_by_parent = build_net_subcategories(expense_totals, income_totals)
+        .transform_values { |subcategories| subcategories.select { |subcategory| subcategory[:net_direction] == :expense } }
 
-      categories = net_totals.net_expense_categories
-        .reject { |ct| ct.total.zero? }
-        .sort_by { |ct| -ct.total }
-        .map do |ct|
+      categories = net_totals.net_expense_categories.each_with_object({}) do |total, result|
+        next if total.total.zero?
+
+        result[total.category.id] = { category: total.category, direct_amount: total.total.to_d }
+      end
+
+      subcategories_by_parent.each do |parent_id, subcategories|
+        next if subcategories.empty? || categories.key?(parent_id)
+
+        parent = subcategories.first[:category].parent
+        categories[parent_id] = { category: parent, direct_amount: 0.to_d } if parent
+      end
+
+      category_data = categories.values.filter_map do |entry|
+        category = entry[:category]
+        subcategories = subcategories_by_parent.fetch(category.id, [])
+        amount = entry[:direct_amount] + subcategories.sum { |subcategory| subcategory[:total] }
+        next if amount.zero?
+
+        serialize_outflow_category(category, amount, entry[:direct_amount], subcategories, net_totals.currency)
+      end
+
+      total = category_data.sum { |category| category[:amount] }
+      category_data.each do |category|
+        category[:percentage] = percentage_of(category[:amount], total)
+        category[:subcategories].each { |subcategory| subcategory[:percentage] = percentage_of(subcategory[:amount], total) }
+      end
+
+      { categories: category_data.sort_by { |category| -category[:amount] }, total: total.to_f.round(2), currency: net_totals.currency, currency_symbol: currency_symbol }
+    end
+
+    def serialize_outflow_category(category, amount, direct_amount, subcategories, currency)
+      color = category.color.presence || Category::UNCATEGORIZED_COLOR
+      {
+        id: category.id,
+        name: category.name,
+        filter_value: category.filter_value,
+        amount: amount.to_f.round(2),
+        direct_amount: direct_amount.to_f.round(2),
+        currency: currency,
+        percentage: 0,
+        color: color,
+        icon: category.lucide_icon,
+        clickable: !category.other_investments?,
+        subcategories: subcategories.map do |subcategory|
+          child = subcategory[:category]
           {
-            id: ct.category.id,
-            name: ct.category.name,
-            filter_value: ct.category.filter_value,
-            amount: ct.total.to_f.round(2),
-            currency: ct.currency,
-            percentage: ct.weight.round(1),
-            color: ct.category.color.presence || Category::UNCATEGORIZED_COLOR,
-            icon: ct.category.lucide_icon,
-            clickable: !ct.category.other_investments?
+            id: child.id,
+            name: child.name,
+            filter_value: child.filter_value,
+            amount: subcategory[:total].to_f.round(2),
+            currency: currency,
+            percentage: 0,
+            color: child.color.presence || color,
+            icon: child.lucide_icon,
+            clickable: !child.other_investments?
           }
         end
+      }
+    end
 
-      { categories: categories, total: total.to_f.round(2), currency: net_totals.currency, currency_symbol: currency_symbol }
+    def percentage_of(amount, total)
+      total.zero? ? 0 : (amount.to_d / total * 100).round(1)
     end
 
     def money_flow_month_param
