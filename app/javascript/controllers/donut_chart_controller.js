@@ -33,7 +33,6 @@ export default class extends Controller {
   #minAmountFontSizePx = 14;
 
   connect() {
-    this.connected = true;
     this.#draw();
     this.#fitAmountTargets();
     document.addEventListener("turbo:load", this.#redraw);
@@ -46,15 +45,7 @@ export default class extends Controller {
     }
   }
 
-  segmentsValueChanged() {
-    if (!this.connected) return;
-
-    this.#teardown();
-    this.#draw();
-  }
-
   disconnect() {
-    this.connected = false;
     this.#teardown();
     document.removeEventListener("turbo:load", this.#redraw);
     this.element.removeEventListener("mouseleave", this.#clearSegmentHover);

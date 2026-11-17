@@ -19,7 +19,6 @@ export default class extends Controller {
     currencySymbol: { type: String, default: "$" },
     startDate: String,
     endDate: String,
-    showSubcategories: { type: Boolean, default: false },
   };
 
   // Visual constants
@@ -72,12 +71,6 @@ export default class extends Controller {
     this.zoomRootId = null;
     this.#syncZoomControls();
     this.#draw({ animate: true });
-  }
-
-  toggleSubcategories() {
-    this.zoomRootId = null;
-    this.#syncZoomControls();
-    this.#draw();
   }
 
   #draw({ animate = false } = {}) {
@@ -156,26 +149,9 @@ export default class extends Controller {
   }
 
   #visibleData() {
-    const data = this.#dataForSelectedDetail();
-    if (!this.zoomRootId) return data;
+    if (!this.zoomRootId) return this.dataValue || {};
 
-    return zoomSankeyData(data, this.zoomRootId);
-  }
-
-  #dataForSelectedDetail() {
-    const data = this.dataValue || {};
-    if (this.showSubcategoriesValue) return data;
-
-    const nodes = (data.nodes || []).filter((node) => !node.id.includes("_sub_"));
-    const visibleNodeIndexes = new Set(nodes.map((node) => data.nodes.indexOf(node)));
-    return {
-      ...data,
-      nodes,
-      links: (data.links || []).filter(
-        (link) =>
-          visibleNodeIndexes.has(link.source) && visibleNodeIndexes.has(link.target),
-      ),
-    };
+    return zoomSankeyData(this.dataValue, this.zoomRootId);
   }
 
   #syncZoomControls() {

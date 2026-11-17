@@ -85,7 +85,6 @@ it:
         no_data_title: "Nessun dato di flusso di cassa per questo periodo"
         no_data_description: "Aggiungi transazioni per visualizzare i dati di flusso di cassa o amplia il periodo"
         add_transaction: "Aggiungi transazione"
-        show_subcategories: "Mostra sottocategorie"
       no_accounts:
         title: "Nessun conto ancora"
         description: "Aggiungi conti per visualizzare i dati del patrimonio netto"
@@ -96,7 +95,6 @@ it:
         categories: "Categorie"
         value: "Valore"
         weight: "Peso"
-        show_subcategories: "Mostra sottocategorie"
       investment_summary:
         title: "Investimenti"
         total_return: "Rendimento Totale"

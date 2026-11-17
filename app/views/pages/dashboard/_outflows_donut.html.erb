@@ -1,13 +1,5 @@
 <%# locals: (outflows_data:, period:) %>
-<div id="outflows-donut-section" class="@container" data-controller="subcategory-visibility"
-  data-subcategory-visibility-categories-value="<%= outflows_data[:categories].to_json %>">
-  <div class="flex items-center justify-end gap-3 px-4 pb-2">
-    <label for="outflows-show-subcategories" class="text-sm text-secondary"><%= t("pages.dashboard.outflows_donut.show_subcategories") %></label>
-    <%= render DS::Toggle.new(
-      id: "outflows-show-subcategories",
-      data: { action: "change->subcategory-visibility#toggle" }
-    ) %>
-  </div>
+<div id="outflows-donut-section" class="@container">
   <div class="px-4">
     <div class="flex flex-col @2xl:flex-row gap-8 items-center">
       <!-- Donut Chart -->
@@ -18,10 +10,9 @@
           data-donut-chart-segment-opacity-value="0.9"
           data-donut-chart-extended-hover-value="true"
           data-donut-chart-hover-extension-value="3"
-           data-donut-chart-enable-click-value="true"
-           data-donut-chart-start-date-value="<%= period.date_range.first %>"
-           data-donut-chart-end-date-value="<%= period.date_range.last %>"
-           data-subcategory-visibility-target="donut">
+          data-donut-chart-enable-click-value="true"
+          data-donut-chart-start-date-value="<%= period.date_range.first %>"
+          data-donut-chart-end-date-value="<%= period.date_range.last %>">
           <div data-donut-chart-target="chartContainer" class="absolute inset-0 pointer-events-none"></div>
 
           <div data-donut-chart-target="contentContainer" class="flex justify-center items-center h-full">
@@ -48,17 +39,6 @@
                 </div>
               </div>
             <% end %>
-            <% outflows_data[:categories].flat_map { |category| category[:subcategories] }.each do |subcategory| %>
-              <div id="segment_<%= subcategory[:id] %>" class="hidden">
-                <div class="flex flex-col gap-2 items-center">
-                  <p class="text-sm text-secondary"><%= subcategory[:name] %></p>
-                  <p data-donut-chart-target="amount" class="text-3xl font-medium text-primary privacy-sensitive whitespace-nowrap">
-                    <%= outflows_data[:currency_symbol] %><%= number_with_delimiter(subcategory[:amount], delimiter: ",") %>
-                  </p>
-                  <p class="text-sm text-secondary privacy-sensitive"><%= subcategory[:percentage] %>%</p>
-                </div>
-              </div>
-            <% end %>
           </div>
         </div>
       </div>
@@ -67,7 +47,7 @@
       <div class="w-full @2xl:w-2/3 bg-container-inset rounded-xl p-1 space-y-1 overflow-x-auto">
         <div class="px-4 py-2 flex items-center uppercase text-xs font-medium text-secondary">
           <div class="w-16 @2xl:w-40">
-            <p><%= t("pages.dashboard.outflows_donut.categories") %><span class="text-subdued mx-1">&middot;</span><span data-subcategory-visibility-target="count"><%= outflows_data[:categories].count %></span></p>
+            <p><%= t("pages.dashboard.outflows_donut.categories") %><span class="text-subdued mx-1">&middot;</span><%= outflows_data[:categories].count %></p>
           </div>
           <div class="ml-auto text-right flex items-center gap-6">
             <div class="w-16 @2xl:w-40">
@@ -126,34 +106,6 @@
                   data-action="mouseenter->donut-chart#highlightSegment mouseleave->donut-chart#unhighlightSegment">
                 <%= category_content %>
               </div>
-            <% end %>
-            <% category[:subcategories].each do |subcategory| %>
-              <%= link_to transactions_path(q: { categories: [subcategory[:filter_value]], start_date: period.date_range.first, end_date: period.date_range.last }),
-                  hidden: true,
-                  class: "flex items-center justify-between mx-3 p-3 pl-12 rounded-lg cursor-pointer group gap-3",
-                  data: {
-                    subcategory_visibility_target: "subcategory",
-                    turbo_frame: "_top",
-                    turbo_prefetch: false,
-                    category_id: subcategory[:id],
-                    action: "mouseenter->donut-chart#highlightSegment mouseleave->donut-chart#unhighlightSegment"
-                  } do %>
-                <div class="flex items-center gap-3 flex-1 min-w-0">
-                  <div class="h-7 w-7 flex-shrink-0 rounded-full flex justify-center items-center"
-                    style="background-color: color-mix(in oklab, <%= subcategory[:color] %> 10%, transparent); color: <%= subcategory[:color] %>;">
-                    <% if subcategory[:icon] %>
-                      <%= icon(subcategory[:icon], color: "current", size: "sm") %>
-                    <% else %>
-                      <%= render DS::FilledIcon.new(variant: :text, hex_color: subcategory[:color], text: subcategory[:name], size: "sm", rounded: true) %>
-                    <% end %>
-                  </div>
-                  <span class="text-sm text-primary truncate"><%= subcategory[:name] %></span>
-                </div>
-                <div class="flex items-center gap-4 flex-shrink-0 text-right">
-                  <span class="text-sm font-medium text-primary whitespace-nowrap privacy-sensitive"><%= format_money Money.new(subcategory[:amount], subcategory[:currency]) %></span>
-                  <span class="text-sm text-secondary whitespace-nowrap w-10 @2xl:w-15 privacy-sensitive"><%= subcategory[:percentage] %>%</span>
-                </div>
-              <% end %>
             <% end %>
             <% if idx < outflows_data[:categories].size - 1 %>
               <%= render "shared/ruler", classes: "mx-3 @2xl:mx-4" %>
